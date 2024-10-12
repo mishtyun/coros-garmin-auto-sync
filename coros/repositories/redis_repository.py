@@ -4,22 +4,35 @@ from redis import Redis, ConnectionPool
 
 from coros.repositories import Repository
 
+__all__ = ["RedisRepository", "get_redis_repository"]
+
+
+def get_redis_client() -> Redis:
+    from coros.app import redis_configuration
+
+    pool = ConnectionPool(
+        host=redis_configuration.host,
+        port=redis_configuration.port,
+        db=redis_configuration.db,
+    )
+    return Redis(connection_pool=pool)
+
 
 class RedisRepository(Repository):
 
     def __init__(self, redis: Redis):
         self.redis = redis
 
-    async def get(self, **filters: Any) -> Any:
+    def get(self, key: str) -> Any:
+        if value := self.redis.get(key):
+            return value.decode()
         return None
 
-    async def add_access_key(self, access_key: str) -> bool:
-        return False
+    def add_access_token(self, key: str, access_token: str) -> bool:
+        return self.redis.set(key, access_token)
 
-
-def get_redis_client() -> Redis:
-    pool = ConnectionPool(host="localhost", port=6379, db=0)
-    return Redis(connection_pool=pool)
+    def flush(self):
+        return self.redis.flushdb()
 
 
 def get_redis_repository() -> RedisRepository:

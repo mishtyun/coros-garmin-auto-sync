@@ -1,2 +1,2 @@
 from .base import BaseService
-from .login import AuthService
+from .auth import AuthService

@@ -10,5 +10,5 @@ class Repository(ABC):
         pass
 
     @abstractmethod
-    async def add_access_key(self, email: str | None) -> bool:
+    async def add_access_token(self, key: str, access_token: str) -> bool:
         pass
