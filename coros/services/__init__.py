@@ -1,2 +1,2 @@
-from activity import *
-from login import *
+from .base import BaseService
+from .login import AuthService

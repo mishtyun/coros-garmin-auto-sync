@@ -1,6 +1,5 @@
 import hashlib
 
-
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -12,6 +11,8 @@ class CorosConfiguration(BaseSettings):
     api_url: str
     email: str
     password: str
+
+    access_token: str | None = None
 
     @property
     def hashed_password(self):
