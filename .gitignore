@@ -1,0 +1,10 @@
+# system files
+.vscode
+.idea
+.DS_Store
+
+# env files
+.env
+
+# working files
+*todo*
