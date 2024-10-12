@@ -1,0 +1,11 @@
+version: '3.9'
+
+services:
+  redis:
+    container_name: sport_sync__redis
+    image: redis:7.0.8
+    env_file: [ .env ]
+    ports:
+      - "6380:6379"
+    volumes:
+      - ./redisdata:/data
