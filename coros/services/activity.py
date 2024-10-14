@@ -1,7 +1,8 @@
 import shutil
+from typing import Sequence
 
 from coros.constants import ActivityFileType
-from coros.models.activity import Activity
+from coros.models import Activity, DateActivityFilter
 from coros.services import BaseService
 from coros.services.utils import get_caller_name, get_file_name
 
@@ -13,18 +14,25 @@ class ActivityService(BaseService):
     API_URLS = {
         "get_activities": "/activity/query?size={size}&pageNumber={page_number}",
         "get_latest_activity": "/activity/query?size=1&pageNumber=1",
-        "download_latest_activity": "/activity/detail/download?labelId={label_id}&sportType={sport_type}&fileType={file_type}&",
+        "download_latest_activity": "/activity/detail/download?labelId={label_id}&sportType={sport_type}&fileType={file_type}",
     }
 
-    def get_url(self, **query_params):
+    def get_url(
+        self, *, date_filters: DateActivityFilter | None = None, **query_params
+    ):
         if "size" not in query_params:
             query_params["size"] = self.DEFAULT_PAGE_SIZE
         if "page_number" not in query_params:
             query_params["page_number"] = self.DEFAULT_PAGE_NUMBER
 
-        return self.configuration.api_url + self.API_URLS.get(
+        url = self.configuration.api_url + self.API_URLS.get(
             get_caller_name(), ""
         ).format(**query_params)
+
+        if date_filters:
+            url += f"&startDay={date_filters.start_date}&endDay={date_filters.end_date}"
+
+        return url
 
     def get_headers(self) -> dict:
         headers = super().get_headers()
@@ -35,15 +43,22 @@ class ActivityService(BaseService):
         )
         return headers
 
-    def get_activities(self):
-        res = self.http.request("GET", self.get_url(), headers=self.get_headers())
+    def get_activities(self, date_filters: DateActivityFilter | None = None):
+        activities_url = self.get_url(date_filters=date_filters)
+        res = self.http.request("GET", activities_url, headers=self.get_headers())
         return res.json()
 
-    def get_latest_activity(self, save_response: bool = False) -> None | Activity:
-        res = self.http.request("GET", self.get_url(size=1), headers=self.get_headers())
+    def get_latest_activity(
+        self,
+        *,
+        date_filters: DateActivityFilter | None = None,
+        save_response: bool = False,
+    ) -> None | Activity:
+        latest_activity_url = self.get_url(date_filters=date_filters, size=1)
+        res = self.http.request("GET", latest_activity_url, headers=self.get_headers())
 
         activity_data = res.json().get("data", {}).get("dataList")
-        if not activity_data or not isinstance(activity_data, list):
+        if not activity_data or not isinstance(activity_data, Sequence):
             return None
 
         activity_data = activity_data[0]
