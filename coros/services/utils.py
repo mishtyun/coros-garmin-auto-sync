@@ -1,10 +1,14 @@
 import inspect
 from typing import Literal
+from uuid import uuid4
 
-CALLER_NAME_FORMAT = Literal["module", "class", "method"]
+__all__ = ["get_file_name", "get_caller_name"]
 
 
-def get_caller_name(return_format: CALLER_NAME_FORMAT = "method", skip: int = 2):
+CALLER_NAME_FORMATS = Literal["module", "class", "method"]
+
+
+def get_caller_name(return_format: CALLER_NAME_FORMATS = "method", skip: int = 2):
     """Get a name of a caller in the format module.class.method
 
     `skip` specifies how many levels of stack to skip while getting caller
@@ -34,3 +38,11 @@ def get_caller_name(return_format: CALLER_NAME_FORMAT = "method", skip: int = 2)
     del parentframe, stack
 
     return ".".join(name)
+
+
+def get_file_name(extension: str, **params) -> str:
+    if not params:
+        return f"{uuid4().hex.upper()[0:6]}.{extension}"
+
+    file_name = "__".join((f"{key}-{value}" for key, value in params.items()))
+    return f"{file_name}.{extension}"

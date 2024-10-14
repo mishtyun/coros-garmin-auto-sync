@@ -1,3 +1,5 @@
+import urllib3
+
 from coros.repositories.redis_repository import get_redis_repository
 from coros.configuration import CorosConfiguration
 
@@ -8,6 +10,8 @@ class BaseService(object):
     def __init__(self, configuration: CorosConfiguration):
         self.configuration = configuration
         self.redis_repository = get_redis_repository()
+
+        self.http = urllib3.PoolManager()
 
     def get_headers(self) -> dict:
         return {
