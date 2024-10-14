@@ -10,3 +10,6 @@ if __name__ == "__main__":
     auth_service = AuthService(coros_configuration)
     access_token = auth_service.get_access_token()
     activities = ActivityService(coros_configuration).get_activities()
+    latest_activity = ActivityService(coros_configuration).get_latest_activity()
+
+    print(latest_activity)

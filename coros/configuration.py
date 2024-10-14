@@ -15,6 +15,7 @@ class CorosConfiguration(BaseSettings):
     password: str
 
     access_token: str | None = None
+    access_token_expired_time: int | None = 60 * 30  # 30 min
 
     @property
     def hashed_password(self):

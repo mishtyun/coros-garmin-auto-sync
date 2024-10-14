@@ -20,8 +20,9 @@ def get_redis_client() -> Redis:
 
 class RedisRepository(Repository):
 
-    def __init__(self, redis: Redis):
+    def __init__(self, redis: Redis, expired_time: int | None = None):
         self.redis = redis
+        self._expired_time = expired_time
 
     def get(self, key: str) -> Any:
         if value := self.redis.get(key):
@@ -29,12 +30,16 @@ class RedisRepository(Repository):
         return None
 
     def add_access_token(self, key: str, access_token: str) -> bool:
-        return self.redis.set(key, access_token)
+        return self.redis.set(key, access_token, ex=self._expired_time)
 
     def flush(self):
         return self.redis.flushdb()
 
 
 def get_redis_repository() -> RedisRepository:
+    from coros.app import coros_configuration
+
     redis_client = get_redis_client()
-    return RedisRepository(redis_client)
+    return RedisRepository(
+        redis=redis_client, expired_time=coros_configuration.access_token_expired_time
+    )
