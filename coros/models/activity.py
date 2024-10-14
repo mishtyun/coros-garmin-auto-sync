@@ -1,9 +1,10 @@
-from dataclasses import dataclass
+from pydantic import BaseModel, Field
+
+__all__ = ["Activity"]
 
 
-@dataclass
-class Activity:
+class Activity(BaseModel):
     date: int
-    labelId: str
+    label_id: str = Field(validation_alias="labelId")
     name: str
-    sportType: int
+    sport_type: int = Field(validation_alias="sportType")
