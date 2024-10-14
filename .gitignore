@@ -8,3 +8,9 @@
 
 # working files
 *todo*
+
+# all volumes
+*data
+
+# static data
+static/*
