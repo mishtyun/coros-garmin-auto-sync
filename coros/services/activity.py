@@ -1,3 +1,6 @@
+import shutil
+import urllib
+
 import urllib3
 
 from coros.constants import ActivityFileType
@@ -13,7 +16,7 @@ class ActivityService(BaseService):
     API_URLS = {
         "get_activities": "/activity/query?size={size}&pageNumber={page_number}",
         "get_latest_activity": "/activity/query?size=1&pageNumber=1",
-        "download_latest_activity": "/activity/detail/download",
+        "download_latest_activity": "/activity/detail/download?labelId={label_id}&sportType={sport_type}&fileType={file_type}&",
     }
 
     def get_url(self, **query_params):
@@ -58,14 +61,27 @@ class ActivityService(BaseService):
         latest_activity: Activity = self.get_latest_activity(save_response=False)
 
         query_params_to_download = {
-            "labelId": latest_activity.label_id,
-            "sportType": latest_activity.sport_type,
-            "fileType": ActivityFileType.FIT,
+            "label_id": latest_activity.label_id,
+            "sport_type": latest_activity.sport_type,
+            "file_type": ActivityFileType.FIT.value,
         }
 
-        downloaded_file = urllib3.request(
+        file_to_download_response = urllib3.request(
             method="GET",
             headers=self.get_headers(),
             url=self.get_url(**query_params_to_download),
         )
-        return downloaded_file
+
+        # TODO validate response from coros-api service
+        file_to_download_data = file_to_download_response.json()
+        activity_file_url = file_to_download_data.get("data", {}).get("fileUrl")
+
+        filename = "test.fit"
+        http = urllib3.PoolManager()
+
+        with http.request(
+            "GET", activity_file_url, preload_content=False
+        ) as resp, open(filename, "wb") as out_file:
+            shutil.copyfileobj(resp, out_file)
+
+        return out_file.name
