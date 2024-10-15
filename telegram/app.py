@@ -1,6 +1,8 @@
 import asyncio
 from aiogram import Bot, Dispatcher, types, F
 
+from coros.services import AuthService
+from coros.services.activity import ActivityService
 from telegram.configuration import telegram_bot_settings
 
 dispatcher = Dispatcher()
@@ -8,10 +10,13 @@ dispatcher = Dispatcher()
 
 @dispatcher.message(F.text == "Download latest activity")
 async def download_latest_activity_handler(message: types.Message):
-    await message.reply("processing...", reply_markup=types.ReplyKeyboardRemove())
+    await message.reply("processing...")
 
-    # need to call method to download latest activity
-    # it might be done using queue, or calling method directly (we can start from 2d variant)
+    from coros.configuration import coros_configuration
+
+    AuthService(coros_configuration).get_access_token()
+    ActivityService(coros_configuration).download_latest_activity()
+    await message.reply("downloaded")
 
 
 @dispatcher.message()
