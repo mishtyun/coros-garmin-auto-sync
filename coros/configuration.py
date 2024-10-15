@@ -3,7 +3,14 @@ import os
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-__all__ = ["BASE_DIR", "STATIC_ROOT", "CorosConfiguration", "RedisConfiguration"]
+__all__ = [
+    "BASE_DIR",
+    "STATIC_ROOT",
+    "redis_configuration",
+    "coros_configuration",
+    "CorosConfiguration",
+    "RedisConfiguration",
+]
 
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 STATIC_ROOT = os.path.join(BASE_DIR, "static")
@@ -34,3 +41,7 @@ class RedisConfiguration(BaseSettings):
     host: str = "localhost"
     port: int = 6379
     db: int = 0
+
+
+redis_configuration = RedisConfiguration()
+coros_configuration = CorosConfiguration()

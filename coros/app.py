@@ -1,15 +1,15 @@
-from coros.configuration import CorosConfiguration, RedisConfiguration
+from coros.configuration import coros_configuration
 from coros.services import AuthService
 from coros.services.activity import ActivityService
 
-redis_configuration = RedisConfiguration()
-coros_configuration = CorosConfiguration()
-
 
 if __name__ == "__main__":
+    from coros.models.filters import DateActivityFilter
+
     auth_service = AuthService(coros_configuration)
     access_token = auth_service.get_access_token()
-    activities = ActivityService(coros_configuration).get_activities()
-    latest_activity = ActivityService(coros_configuration).get_latest_activity()
 
-    print(latest_activity)
+    a = ActivityService(coros_configuration).get_activities(
+        DateActivityFilter(start_date="20241003", end_date="20241003")
+    )
+    latest_activity = ActivityService(coros_configuration).download_latest_activity()
