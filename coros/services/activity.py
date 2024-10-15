@@ -100,4 +100,4 @@ class ActivityService(BaseService):
         ) as resp, open(file_path, "wb") as out_file:
             shutil.copyfileobj(resp, out_file)
 
-        return out_file.name
+        return file_path

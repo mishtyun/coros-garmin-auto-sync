@@ -15,8 +15,10 @@ async def download_latest_activity_handler(message: types.Message):
     from coros.configuration import coros_configuration
 
     AuthService(coros_configuration).get_access_token()
-    ActivityService(coros_configuration).download_latest_activity()
-    await message.reply("downloaded")
+    file_path = ActivityService(coros_configuration).download_latest_activity()
+
+    latest_activity_file = types.FSInputFile(file_path)
+    await message.reply_document(caption="Downloaded", document=latest_activity_file)
 
 
 @dispatcher.message()
