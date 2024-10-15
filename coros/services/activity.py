@@ -1,6 +1,8 @@
+import os
 import shutil
 from typing import Sequence
 
+from coros.configuration import STATIC_ROOT
 from coros.constants import ActivityFileType
 from coros.models import Activity, DateActivityFilter
 from coros.services import BaseService
@@ -91,10 +93,11 @@ class ActivityService(BaseService):
         filename = get_file_name(
             ActivityFileType.FIT.name.lower(), **query_params_to_download
         )
+        file_path = os.path.join(STATIC_ROOT, filename)
 
         with self.http.request(
             "GET", activity_file_url, preload_content=False
-        ) as resp, open(filename, "wb") as out_file:
+        ) as resp, open(file_path, "xb") as out_file:
             shutil.copyfileobj(resp, out_file)
 
         return out_file.name

@@ -1,8 +1,12 @@
 import hashlib
+import os
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-__all__ = ["CorosConfiguration", "RedisConfiguration"]
+__all__ = ["BASE_DIR", "STATIC_ROOT", "CorosConfiguration", "RedisConfiguration"]
+
+BASE_DIR = os.path.dirname(os.path.dirname(__file__))
+STATIC_ROOT = os.path.join(BASE_DIR, "static")
 
 
 class CorosConfiguration(BaseSettings):
