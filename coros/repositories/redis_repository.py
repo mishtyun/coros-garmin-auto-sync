@@ -9,7 +9,7 @@ __all__ = ["RedisRepository", "get_redis_repository"]
 
 
 def get_redis_client() -> Redis:
-    from coros.app import redis_configuration
+    from coros.configuration import redis_configuration
 
     pool = ConnectionPool(
         host=redis_configuration.host,

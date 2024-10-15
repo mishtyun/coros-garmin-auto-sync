@@ -97,7 +97,7 @@ class ActivityService(BaseService):
 
         with self.http.request(
             "GET", activity_file_url, preload_content=False
-        ) as resp, open(file_path, "xb") as out_file:
+        ) as resp, open(file_path, "wb") as out_file:
             shutil.copyfileobj(resp, out_file)
 
         return out_file.name
