@@ -40,13 +40,13 @@ def get_caller_name(return_format: CALLER_NAME_FORMATS = "method", skip: int = 2
     return ".".join(name)
 
 
-def get_file_name(extension: str, **params) -> str:
+def get_file_name(*, base_name: str, extension: str, **params) -> str:
     prefix = uuid4().hex.upper()[0:6]
 
     if not params:
-        return f"{prefix}.{extension}"
+        return f"{base_name}__{prefix}.{extension}"
 
     file_name = (
         "__".join((f"{key}-{value}" for key, value in params.items())) + f"__{prefix}"
     )
-    return f"{file_name}.{extension}"
+    return f"{base_name}__{file_name}.{extension}"

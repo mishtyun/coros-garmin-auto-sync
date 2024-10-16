@@ -91,7 +91,10 @@ class ActivityService(BaseService):
         activity_file_url = file_to_download_data.get("data", {}).get("fileUrl")
 
         filename = get_file_name(
-            ActivityFileType.FIT.name.lower(), **query_params_to_download
+            base_name=latest_activity.name,
+            extension=ActivityFileType.FIT.name.lower(),
+            label_id=latest_activity.label_id,
+            sport_type=latest_activity.sport_type,
         )
         file_path = os.path.join(STATIC_ROOT, filename)
 
