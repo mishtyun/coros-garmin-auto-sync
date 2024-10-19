@@ -18,9 +18,7 @@ async def download_latest_activity_handler(message: types.Message):
         file_path = ActivityService(coros_configuration).download_latest_activity()
 
         latest_activity_file = types.FSInputFile(file_path)
-        await message.reply_document(
-            caption="Downloaded", document=latest_activity_file
-        )
+        await message.reply_document(document=latest_activity_file)
     except Exception as e:
         await message.answer("Error while downloading")
         raise e
