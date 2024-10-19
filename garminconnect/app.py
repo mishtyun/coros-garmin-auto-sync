@@ -16,34 +16,32 @@ def get_mfa():
 def init_api():
     """Initialize Garmin API with your credentials."""
 
-    tokenstore = garmin_connect_configuration.tokenstore
-
     try:
         print(
-            f"Trying to login to Garmin Connect using token data from directory {tokenstore} ...\n"
+            f"Trying to login to Garmin Connect using token data from the tokenstore directory ...\n"
         )
 
-        garmin = Garmin()
-        garmin.login(tokenstore)
+        garmin = Garmin(garmin_connect_configuration)
+        garmin.login()
 
     except (FileNotFoundError, GarthHTTPError, GarminConnectAuthenticationError):
         print(
             "Login tokens not present, login with your Garmin Connect credentials to generate them.\n"
-            f"They will be stored in '{tokenstore}' for future use.\n"
+            f"They will be stored in tokenstore for future use.\n"
         )
         try:
             garmin = Garmin(
-                email=garmin_connect_configuration.email,
-                password=garmin_connect_configuration.password,
+                garmin_connect_configuration,
                 is_cn=False,
                 prompt_mfa=get_mfa,
             )
             garmin.login()
+
             # Save Oauth1 and Oauth2 token files to directory for next login
-            garmin.garth.dump(tokenstore)
+            garmin.garth.dump(garmin_connect_configuration.tokenstore)
 
             print(
-                f"Oauth tokens stored in '{tokenstore}' directory for future use. (first method)\n"
+                f"Oauth tokens stored in tokenstore directory for future use. (first method)\n"
             )
             # Encode Oauth1 and Oauth2 tokens to base64 string and safe to file for next login (alternative way)
             token_base64 = garmin.garth.dumps()
