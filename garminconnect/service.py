@@ -10,7 +10,7 @@ import garth
 from withings_sync import fit
 
 from garminconnect.configuration import GarminConnectConfiguration
-from garminconnect.constants import API_URLS
+from garminconnect.constants import API_URLS, ACTIVITY_VISIBILITIES
 from garminconnect.utils import get_caller_name
 
 logger = logging.getLogger(__name__)
@@ -820,6 +820,18 @@ class Garmin:
 
         url = self.get_url(activity_id=activity_id)
         payload = {"activityId": activity_id, "activityName": title}
+
+        return self.garth.put("connectapi", url, json=payload, api=True)
+
+    def change_activity_visibility(
+        self, activity_id: int | str, visibility: ACTIVITY_VISIBILITIES
+    ):
+        url = self.get_url(activity_id=activity_id)
+
+        payload = {
+            "accessControlRuleDTO": {"typeKey": visibility},
+            "activityId": activity_id,
+        }
 
         return self.garth.put("connectapi", url, json=payload, api=True)
 

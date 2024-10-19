@@ -1,4 +1,9 @@
-__all__ = ["API_URLS"]
+from typing import Literal
+
+__all__ = ["API_URLS", "ACTIVITY_VISIBILITIES"]
+
+
+ACTIVITY_VISIBILITIES = Literal["public"]
 
 API_URLS = {
     "login": "/userprofile-service/userprofile/user-settings",
@@ -31,6 +36,7 @@ API_URLS = {
     "get_activities_by_date": "/activitylist-service/activities/search/activities",
     "get_gear_activities": "/activitylist-service/activities/{gear_uuid}/gear?start=0&limit=9999",
     "set_activity_name": "/activity-service/activity/{activity_id}",
+    "change_activity_visibility": "/activity-service/activity/{activity_id}",
     "get_activity_splits": "/activity-service/activity/{activity_id}/splits",
     "get_activity_typed_splits": "/activity-service/activity/{activity_id}/typedsplits",
     "get_activity_split_summaries": "/activity-service/activity/{activity_id}/split_summaries",
