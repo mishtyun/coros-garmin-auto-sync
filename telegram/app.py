@@ -1,4 +1,6 @@
 import asyncio
+from time import sleep
+
 from aiogram import Bot, Dispatcher, types, F
 
 from coros.services import AuthService
@@ -34,6 +36,20 @@ async def sync_latest_activity_handler(message: types.Message):
 
         api = init_api()
         api.upload_activity(file_path)
+
+        sleep(3)
+
+        latest_activity = api.get_last_activity()
+        activity_id = latest_activity.get("activityId")
+
+        api.change_activity_visibility(activity_id, "public")
+
+        garmin_activity_link = (
+            f"https://connect.garmin.com/modern/activity/{activity_id}"
+        )
+        await message.answer(
+            f"Synced successfully\nActivity link {garmin_activity_link}"
+        )
     except Exception as e:
         await message.answer("Error while syncing")
         raise e
