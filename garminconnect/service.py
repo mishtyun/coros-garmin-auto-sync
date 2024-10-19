@@ -1204,19 +1204,3 @@ class Garmin:
         """Log user out of session."""
 
         logger.error("Deprecated: Alternative is to delete login tokens to logout.")
-
-
-class GarminConnectConnectionError(Exception):
-    """Raised when communication ended in error."""
-
-
-class GarminConnectTooManyRequestsError(Exception):
-    """Raised when rate limit is exceeded."""
-
-
-class GarminConnectAuthenticationError(Exception):
-    """Raised when authentication is failed."""
-
-
-class GarminConnectInvalidFileFormatError(Exception):
-    """Raised when an invalid file format is passed to upload."""
