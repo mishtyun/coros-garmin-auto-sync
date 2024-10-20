@@ -12,6 +12,7 @@
 # working files
 *todo*
 */ignore*
+ignore/
 
 # all volumes
 *data

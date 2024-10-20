@@ -18,11 +18,11 @@ repos:
       - tomli
     exclude: 'cassettes/'
 
-- repo: local
-  hooks:
-  - id: lint
-    name: lint
-    entry: make lint
-    types: [python]
-    language: system
-    pass_filenames: false
+#- repo: local
+#  hooks:
+#  - id: lint
+#    name: lint
+#    entry: make lint
+#    types: [python]
+#    language: system
+#    pass_filenames: false

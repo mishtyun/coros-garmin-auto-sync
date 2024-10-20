@@ -1,6 +1,7 @@
 import hashlib
 import os
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 __all__ = [
@@ -21,7 +22,7 @@ class CorosConfiguration(BaseSettings):
         env_prefix="coros_", env_file="../.env", extra="allow"
     )
 
-    api_url: str
+    api_url: str = Field(default="https://teameapi.coros.com")
     email: str
     password: str
 
