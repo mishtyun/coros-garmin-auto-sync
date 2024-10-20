@@ -61,7 +61,7 @@ class ActivityService(BaseService):
         activity_model = Activity.model_validate(activity_data)
 
         if save_response:
-            self.redis_repository.get_latest_activity_data(activity_model.model_dump())
+            self.redis_repository.add_latest_activity_data(activity_model.model_dump())
 
         return activity_model
 

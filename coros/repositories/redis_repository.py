@@ -58,7 +58,7 @@ class RedisRepository(Repository):
 
 
 def get_redis_repository() -> RedisRepository:
-    from coros.app import coros_configuration
+    from coros.configuration import coros_configuration
 
     redis_client = get_redis_client()
     return RedisRepository(
