@@ -3,8 +3,8 @@ import shutil
 from typing import Sequence
 
 from coros.configuration import STATIC_ROOT
-from coros.constants import ActivityFileType
-from coros.models import Activity, DateActivityFilter, activity
+from coros.constants import ActivityFileType, API_URLS
+from coros.models import Activity, DateActivityFilter
 from coros.services import BaseService
 from coros.services.utils import get_caller_name, get_file_name
 
@@ -12,12 +12,6 @@ from coros.services.utils import get_caller_name, get_file_name
 class ActivityService(BaseService):
     DEFAULT_PAGE_SIZE = 10
     DEFAULT_PAGE_NUMBER = 1
-
-    API_URLS = {
-        "get_activities": "/activity/query?size={size}&pageNumber={page_number}",
-        "get_latest_activity": "/activity/query?size=1&pageNumber=1",
-        "download_latest_activity": "/activity/detail/download?labelId={label_id}&sportType={sport_type}&fileType={file_type}",
-    }
 
     def get_url(
         self, *, date_filters: DateActivityFilter | None = None, **query_params
@@ -27,9 +21,9 @@ class ActivityService(BaseService):
         if "page_number" not in query_params:
             query_params["page_number"] = self.DEFAULT_PAGE_NUMBER
 
-        url = self.configuration.api_url + self.API_URLS.get(
-            get_caller_name(), ""
-        ).format(**query_params)
+        url = self.configuration.api_url + API_URLS.get(get_caller_name(), "").format(
+            **query_params
+        )
 
         if date_filters:
             url += f"&startDay={date_filters.start_date}&endDay={date_filters.end_date}"
