@@ -3,16 +3,18 @@
 .idea
 .DS_Store
 
+ .mypy_cache/
+
+
 # env files
 .env
 
 # working files
 *todo*
+*/ignore*
 
 # all volumes
 *data
 
 # static data
 static/*
-
-*/ignore*
