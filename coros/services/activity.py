@@ -4,7 +4,7 @@ from typing import Sequence
 
 from coros.configuration import STATIC_ROOT
 from coros.constants import ActivityFileType
-from coros.models import Activity, DateActivityFilter
+from coros.models import Activity, DateActivityFilter, activity
 from coros.services import BaseService
 from coros.services.utils import get_caller_name, get_file_name
 
@@ -71,8 +71,28 @@ class ActivityService(BaseService):
 
         return activity_model
 
+    @staticmethod
+    def _get_activity_file_path(
+        activity_model: Activity,
+        extension: str = ActivityFileType.FIT.name,
+    ) -> str:
+        filename = get_file_name(
+            base_name=activity_model.name,
+            extension=extension.lower(),
+            label_id=activity_model.label_id,
+            sport_type=activity_model.sport_type,
+        )
+        return os.path.join(STATIC_ROOT, filename)
+
     def download_latest_activity(self):
         latest_activity: Activity = self.get_latest_activity(save_response=False)
+        file_path = self._get_activity_file_path(latest_activity)
+
+        if os.path.exists(file_path):
+            print(
+                f"Activity file already exists for {latest_activity.name}, {latest_activity.label_id}"
+            )
+            return file_path
 
         query_params_to_download = {
             "label_id": latest_activity.label_id,
@@ -89,14 +109,6 @@ class ActivityService(BaseService):
         # TODO validate response from coros-api service
         file_to_download_data = file_to_download_response.json()
         activity_file_url = file_to_download_data.get("data", {}).get("fileUrl")
-
-        filename = get_file_name(
-            base_name=latest_activity.name,
-            extension=ActivityFileType.FIT.name.lower(),
-            label_id=latest_activity.label_id,
-            sport_type=latest_activity.sport_type,
-        )
-        file_path = os.path.join(STATIC_ROOT, filename)
 
         with self.http.request(
             "GET", activity_file_url, preload_content=False
