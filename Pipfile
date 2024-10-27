@@ -3,6 +3,11 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 name = "pypi"
 
+[[source]]
+url = "https://test.pypi.org/simple/"
+verify_ssl = true
+name = "testpypi"
+
 [packages]
 black = "*"
 urllib3 = "==2.2.3"
@@ -16,6 +21,7 @@ withings-sync = ">=4.2.4"
 requests = "*"
 mypy = "*"
 pre-commit = "*"
+garmin-connect = {version = "==0.0.1", index = "testpypi"}
 
 [dev-packages]
 

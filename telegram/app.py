@@ -5,7 +5,7 @@ from aiogram import Bot, Dispatcher, types, F
 
 from coros.services import AuthService
 from coros.services.activity import ActivityService
-from garminconnect.app import init_api
+from garmin_connect.app import init_api
 from telegram.configuration import telegram_bot_settings
 
 dispatcher = Dispatcher()
