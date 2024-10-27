@@ -11,6 +11,10 @@ from withings_sync import fit
 
 from garminconnect.configuration import GarminConnectConfiguration
 from garminconnect.constants import API_URLS, ACTIVITY_VISIBILITIES
+from garminconnect.exceptions import (
+    GarminConnectInvalidFileFormatError,
+    GarminConnectAuthenticationError,
+)
 from garminconnect.utils import get_caller_name
 
 logger = logging.getLogger(__name__)
