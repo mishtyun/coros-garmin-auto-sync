@@ -38,27 +38,7 @@ class Garmin:
         self.is_cn = is_cn
         self.prompt_mfa = prompt_mfa
 
-        self.garmin_connect_primary_device_url = (
-            "/web-gateway/device-info/primary-training-device"
-        )
-
-        self.garmin_connect_daily_sleep_url = (
-            "/wellness-service/wellness/dailySleepData"
-        )
-        self.garmin_connect_daily_stress_url = "/wellness-service/wellness/dailyStress"
         self.garmin_connect_hill_score_url = "/metrics-service/metrics/hillscore"
-
-        self.garmin_connect_daily_body_battery_url = (
-            "/wellness-service/wellness/bodyBattery/reports/daily"
-        )
-
-        self.garmin_connect_body_battery_events_url = (
-            "/wellness-service/wellness/bodyBattery/events"
-        )
-
-        self.garmin_connect_blood_pressure_endpoint = (
-            "/bloodpressure-service/bloodpressure/range"
-        )
 
         self.garmin_connect_set_blood_pressure_endpoint = (
             "/bloodpressure-service/bloodpressure"
@@ -374,13 +354,11 @@ class Garmin:
         Return body battery values by day for 'startdate' format
         'YYYY-MM-DD' through enddate 'YYYY-MM-DD'
         """
-
-        if enddate is None:
-            enddate = startdate
-        url = self.garmin_connect_daily_body_battery_url
+        enddate = enddate if enddate is not None else startdate
         params = {"startDate": str(startdate), "endDate": str(enddate)}
-        logger.debug("Requesting body battery data")
 
+        url = self.get_url()
+        logger.debug("Requesting body battery data")
         return self.connectapi(url, params=params)
 
     def get_body_battery_events(self, cdate: str) -> List[Dict[str, Any]]:
@@ -390,7 +368,7 @@ class Garmin:
         Events can include sleep, recorded activities, auto-detected activities, and naps
         """
 
-        url = f"{self.garmin_connect_body_battery_events_url}/{cdate}"
+        url = self.get_url(cdate=cdate)
         logger.debug("Requesting body battery event data")
 
         return self.connectapi(url)
@@ -425,15 +403,14 @@ class Garmin:
 
         return self.garth.post("connectapi", url, json=payload)
 
-    def get_blood_pressure(self, startdate: str, enddate=None) -> Dict[str, Any]:
+    def get_blood_pressure(self, start_date: str, end_date=None) -> Dict[str, Any]:
         """
-        Returns blood pressure by day for 'startdate' format
-        'YYYY-MM-DD' through enddate 'YYYY-MM-DD'
+        Returns blood pressure by day for 'start_date' format
+        'YYYY-MM-DD' through end_date 'YYYY-MM-DD'
         """
+        end_date = end_date if end_date is not None else start_date
 
-        if enddate is None:
-            enddate = startdate
-        url = f"{self.garmin_connect_blood_pressure_endpoint}/{startdate}/{enddate}"
+        url = self.get_url(start_date=start_date, end_date=end_date)
         params = {"includeAll": True}
         logger.debug("Requesting blood pressure data")
 
@@ -592,8 +569,7 @@ class Garmin:
 
     def get_sleep_data(self, cdate: str) -> Dict[str, Any]:
         """Return sleep data for current user."""
-
-        url = f"{self.garmin_connect_daily_sleep_url}/{self.display_name}"
+        url = self.get_url(display_name=self.display_name)
         params = {"date": str(cdate), "nonSleepBufferMinutes": 60}
         logger.debug("Requesting sleep data")
 
@@ -602,7 +578,7 @@ class Garmin:
     def get_stress_data(self, cdate: str) -> Dict[str, Any]:
         """Return stress data for current user."""
 
-        url = f"{self.garmin_connect_daily_stress_url}/{cdate}"
+        url = self.get_url(cdate=cdate)
         logger.debug("Requesting stress data")
 
         return self.connectapi(url)

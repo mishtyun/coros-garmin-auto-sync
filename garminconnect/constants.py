@@ -47,4 +47,10 @@ API_URLS = {
     "get_activity_exercise_sets": "/activity-service/activity/{activity_id}/exerciseSets",
     "get_activity_types": "/activity-service/activity/activityTypes",
     "upload_activity": "/upload-service/upload",
+    "get_sleep_data": "/wellness-service/wellness/dailySleepData/{display_name}",
+    "get_stress_data": "/wellness-service/wellness/dailyStress/{cdate}",
+    "get_body_battery": "/wellness-service/wellness/bodyBattery/reports/daily",
+    "get_body_battery_events": "/wellness-service/wellness/bodyBattery/events/{cdate}",
+    "get_blood_pressure": "/bloodpressure-service/bloodpressure/range/{start_date}/{end_date}",
+    # Download activity
 }
