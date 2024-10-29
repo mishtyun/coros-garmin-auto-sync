@@ -2,6 +2,9 @@ import os
 import shutil
 from typing import Sequence
 
+from pydantic import TypeAdapter
+from urllib3 import HTTPResponse
+
 from coros.configuration import STATIC_ROOT
 from coros.constants import ActivityFileType, API_URLS
 from coros.models import Activity, DateActivityFilter
@@ -21,9 +24,13 @@ class ActivityService(BaseService):
         if "page_number" not in query_params:
             query_params["page_number"] = self.DEFAULT_PAGE_NUMBER
 
-        url = self.configuration.api_url + API_URLS.get(get_caller_name(), "").format(
-            **query_params
-        )
+        caller_name = get_caller_name()
+        caller_url = API_URLS.get(caller_name, "").format(**query_params)
+
+        if not caller_url:
+            print(f"Can not get url for {caller_url}")
+
+        url = self.configuration.api_url + caller_url
 
         if date_filters:
             url += f"&startDay={date_filters.start_date}&endDay={date_filters.end_date}"
@@ -39,10 +46,18 @@ class ActivityService(BaseService):
         )
         return headers
 
-    def get_activities(self, date_filters: DateActivityFilter | None = None):
+    def get_activities(
+        self, date_filters: DateActivityFilter | None = None
+    ) -> None | list[Activity]:
         activities_url = self.get_url(date_filters=date_filters)
         res = self.http.request("GET", activities_url, headers=self.get_headers())
-        return res.json()
+
+        activities_data = res.json().get("data", {}).get("dataList")
+        if not activities_data or not isinstance(activities_data, Sequence):
+            return None
+
+        ta = TypeAdapter(list[Activity])
+        return ta.validate_python(activities_data)
 
     def get_latest_activity(
         self,
@@ -78,19 +93,25 @@ class ActivityService(BaseService):
         )
         return os.path.join(STATIC_ROOT, filename)
 
-    def download_latest_activity(self):
-        latest_activity: Activity = self.get_latest_activity(save_response=False)
-        file_path = self._get_activity_file_path(latest_activity)
+    @staticmethod
+    def _validate_response(response: HTTPResponse) -> dict:
+        if response.status != 200:
+            print(response.reason)
+            return {}
+        return response.json()
+
+    def download_activity(self, activity: Activity) -> str | None:
+        file_path = self._get_activity_file_path(activity)
 
         if os.path.exists(file_path):
             print(
-                f"Activity file already exists for {latest_activity.name}, {latest_activity.label_id}"
+                f"Activity file already exists for {activity.name}, {activity.label_id}"
             )
             return file_path
 
         query_params_to_download = {
-            "label_id": latest_activity.label_id,
-            "sport_type": latest_activity.sport_type,
+            "label_id": activity.label_id,
+            "sport_type": activity.sport_type,
             "file_type": ActivityFileType.FIT.value,
         }
 
@@ -100,9 +121,12 @@ class ActivityService(BaseService):
             url=self.get_url(**query_params_to_download),
         )
 
-        # TODO validate response from coros-api service
-        file_to_download_data = file_to_download_response.json()
+        file_to_download_data = self._validate_response(file_to_download_response)
         activity_file_url = file_to_download_data.get("data", {}).get("fileUrl")
+
+        if not activity_file_url:
+            print(f"Issue with {activity_file_url=}, for {activity.label_id=}")
+            return None
 
         with self.http.request(
             "GET", activity_file_url, preload_content=False
@@ -110,3 +134,24 @@ class ActivityService(BaseService):
             shutil.copyfileobj(resp, out_file)
 
         return file_path
+
+    def download_daily_activities(
+        self, date_filters: DateActivityFilter | None = None
+    ) -> list[str]:
+        activities_to_download = self.get_activities(date_filters=date_filters)
+
+        file_paths = []
+        for activity in activities_to_download:
+            file_path = self.download_activity(activity)
+            if not file_path:
+                print(
+                    f"Can not download activity for {activity.label_id=}, {activity.name=}"
+                )
+                continue
+            file_paths.append(file_path)
+
+        return file_paths
+
+    def download_latest_activity(self) -> str:
+        latest_activity: Activity = self.get_latest_activity(save_response=False)
+        return self.download_activity(latest_activity)
