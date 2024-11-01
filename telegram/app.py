@@ -1,13 +1,14 @@
 import asyncio
-from time import sleep
+from datetime import datetime, timedelta
 
 from aiogram import Bot, Dispatcher, types, F
 
-from coros.models import DateActivityFilter
 from coros.services import AuthService
 from coros.services.activity import ActivityService
 from garmin_connect.app import init_api
 from telegram.configuration import telegram_bot_settings
+from telegram.enums import DailyActivitiesTypes
+from telegram.utils import upload_and_get_url
 
 bot = Bot(token=telegram_bot_settings.token)
 dispatcher = Dispatcher()
@@ -38,18 +39,8 @@ async def sync_latest_activity_button_handler(message: types.Message):
         AuthService(coros_configuration).get_access_token()
         file_path = ActivityService(coros_configuration).download_latest_activity()
 
-        garmin_api.upload_activity(file_path)
+        garmin_activity_link = await upload_and_get_url(garmin_api, file_path)
 
-        sleep(3)
-
-        latest_activity = garmin_api.get_last_activity()
-        activity_id = latest_activity.get("activityId")
-
-        garmin_api.change_activity_visibility(activity_id, "public")
-
-        garmin_activity_link = (
-            f"https://connect.garmin.com/modern/activity/{activity_id}"
-        )
         await message.answer(
             f"Synced successfully\nActivity link {garmin_activity_link}"
         )
@@ -59,15 +50,24 @@ async def sync_latest_activity_button_handler(message: types.Message):
 
 
 @dispatcher.message(F.text == "Sync all daily activities")
-async def sync_all__daily_activities_button_handler(message: types.Message):
+async def sync_all_daily_activities_button_handler(message: types.Message):
     kb = [
+        # [
+        #     types.InlineKeyboardButton(
+        #         text="Choose the date",
+        #         callback_data=DailyActivitiesTypes.choose_date.value,
+        #     )
+        # ],
         [
             types.InlineKeyboardButton(
-                text="Choose the date", callback_data="choose_date"
+                text="Yesterday", callback_data=DailyActivitiesTypes.yesterday.value
             )
         ],
-        [types.InlineKeyboardButton(text="Yesterday", callback_data="yesterday")],
-        [types.InlineKeyboardButton(text="Today", callback_data="today")],
+        [
+            types.InlineKeyboardButton(
+                text="Today", callback_data=DailyActivitiesTypes.today.value
+            )
+        ],
     ]
 
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=kb)
@@ -77,22 +77,25 @@ async def sync_all__daily_activities_button_handler(message: types.Message):
 
 @dispatcher.callback_query()
 async def process_callback_button1(callback_query: types.CallbackQuery):
+    from telegram.utils import sync_all_activity_by_dates_handler
+
     await bot.answer_callback_query(callback_query.id)
-    await bot.send_message(callback_query.from_user.id, "Нажата первая кнопка!")
 
+    choice = callback_query.data
 
-async def sync_all_activity_by_dates_handler(start_date: str, end_date: str) -> str:
-    from coros.configuration import coros_configuration
+    date_format = "%Y%m%d"
+    start_day = end_date = None
 
-    AuthService(coros_configuration).get_access_token()
-    file_path = ActivityService(coros_configuration).download_daily_activities(
-        DateActivityFilter(start_date=start_date, end_date=end_date)
+    match choice:
+        case DailyActivitiesTypes.yesterday.value:
+            start_day = end_date = (datetime.now() - timedelta(1)).strftime(date_format)
+        case DailyActivitiesTypes.today.value:
+            start_day = end_date = datetime.now().strftime(date_format)
+
+    message_to_send = await sync_all_activity_by_dates_handler(
+        garmin_api, start_day, end_date
     )
-
-    # response = []
-    # garmin_activity_link = (
-    #     f"https://connect.garmin.com/modern/activity/{activity_id}"
-    # )
+    await bot.send_message(callback_query.from_user.id, message_to_send)
 
 
 @dispatcher.message()
