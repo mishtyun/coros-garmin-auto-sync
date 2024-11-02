@@ -1,10 +1,10 @@
 import enum
 
 
-__all__ = ["DailyActivitiesTypes"]
+__all__ = ["DailyActivitiesDateTypes"]
 
 
-class DailyActivitiesTypes(enum.Enum):
+class DailyActivitiesDateTypes(enum.Enum):
     choose_date = "choose_date"
     yesterday = "yesterday"
     today = "today"

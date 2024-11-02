@@ -8,6 +8,17 @@ from coros.services import AuthService
 from coros.services.activity import ActivityService
 
 
+__all__ = [
+    "get_activity_url",
+    "upload_and_get_url",
+    "sync_all_activity_by_dates_handler",
+]
+
+
+def get_activity_url(activity_id: str):
+    return f"https://connect.garmin.com/modern/activity/{activity_id}"
+
+
 async def upload_and_get_url(garmin_api: Garmin, file_path: str) -> str | None:
     try:
         garmin_api.upload_activity(file_path)
@@ -18,7 +29,7 @@ async def upload_and_get_url(garmin_api: Garmin, file_path: str) -> str | None:
         activity_id = latest_activity.get("activityId")
 
         garmin_api.change_activity_visibility(activity_id, "public")
-        return f"https://connect.garmin.com/modern/activity/{activity_id}"
+        return get_activity_url(activity_id)
     except Exception as e:
         print(e)
 
