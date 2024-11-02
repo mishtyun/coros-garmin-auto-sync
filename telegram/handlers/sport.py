@@ -9,10 +9,13 @@ from telegram.enums import DailyActivitiesDateTypes
 from telegram.keyboards import get_activities_dates_keyboard
 from telegram.utils import upload_and_get_url, get_activity_url
 
+
 __all__ = ["router"]
 
-router = Router()
 
+START_HANDLER_COMMAND = "/sport"
+
+router = Router()
 garmin_api = init_api()
 
 
@@ -113,8 +116,8 @@ async def process_get_callback_button(callback_query: types.CallbackQuery):
     )
 
 
-@router.message()
-async def cmd_start(message: types.Message):
+@router.message(F.text == START_HANDLER_COMMAND)
+async def sport_cmd_start(message: types.Message):
     kb = [
         [types.KeyboardButton(text="Download latest activity")],
         [types.KeyboardButton(text="Sync latest activity")],
