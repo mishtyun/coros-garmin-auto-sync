@@ -48,13 +48,13 @@ class ActivityService(BaseService):
 
     def get_activities(
         self, date_filters: DateActivityFilter | None = None
-    ) -> None | list[Activity]:
+    ) -> list[Activity]:
         activities_url = self.get_url(date_filters=date_filters)
         res = self.http.request("GET", activities_url, headers=self.get_headers())
 
         activities_data = res.json().get("data", {}).get("dataList")
         if not activities_data or not isinstance(activities_data, Sequence):
-            return None
+            return []
 
         ta = TypeAdapter(list[Activity])
         return ta.validate_python(activities_data)
