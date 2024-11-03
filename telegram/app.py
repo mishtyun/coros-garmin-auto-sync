@@ -5,19 +5,17 @@ from aiogram import Bot, Dispatcher
 import handlers
 from telegram.configuration import telegram_bot_settings
 
-bot = Bot(token=telegram_bot_settings.token)
-dispatcher = Dispatcher()
+__all__ = ["run_bot"]
 
 
-async def app():
+async def app(bot: Bot, dispatcher: Dispatcher):
     dispatcher.include_router(handlers.sport_router)
     dispatcher.include_router(handlers.base_router)
     await dispatcher.start_polling(bot)
 
 
 def run_bot():
-    asyncio.run(app())
+    bot = Bot(token=telegram_bot_settings.token)
+    dispatcher = Dispatcher()
 
-
-if __name__ == "__main__":
-    run_bot()
+    asyncio.run(app(bot=bot, dispatcher=dispatcher))
