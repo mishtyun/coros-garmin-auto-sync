@@ -2,7 +2,7 @@ import asyncio
 
 from aiogram import Bot, Dispatcher
 
-import handlers
+import telegram.handlers as handlers
 from telegram.configuration import telegram_bot_settings
 
 __all__ = ["run_bot"]

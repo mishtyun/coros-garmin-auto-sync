@@ -2,8 +2,8 @@ from datetime import datetime, timedelta
 
 from aiogram import types, F, Router
 
-from coros.services import AuthService
-from coros.services.activity import ActivityService
+from coros import coros_configuration
+from coros.services import AuthService, ActivityService
 from garmin_connect.app import init_api
 from telegram.enums import DailyActivitiesDateTypes
 from telegram.keyboards import get_activities_dates_keyboard
@@ -21,8 +21,6 @@ garmin_api = init_api()
 
 @router.message(F.text == "Download latest activity")
 async def download_latest_activity_button_handler(message: types.Message):
-    from coros.configuration import coros_configuration
-
     try:
         AuthService(coros_configuration).get_access_token()
         file_path = ActivityService(coros_configuration).download_latest_activity()
@@ -36,8 +34,6 @@ async def download_latest_activity_button_handler(message: types.Message):
 
 @router.message(F.text == "Sync latest activity")
 async def sync_latest_activity_button_handler(message: types.Message):
-    from coros.configuration import coros_configuration
-
     try:
         AuthService(coros_configuration).get_access_token()
         file_path = ActivityService(coros_configuration).download_latest_activity()

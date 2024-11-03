@@ -1,6 +1,7 @@
 import hashlib
 import os
 
+from dotenv import load_dotenv, find_dotenv
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -16,11 +17,11 @@ __all__ = [
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 STATIC_ROOT = os.path.join(BASE_DIR, "static")
 
+load_dotenv(find_dotenv(".env"))
+
 
 class CorosConfiguration(BaseSettings):
-    model_config = SettingsConfigDict(
-        env_prefix="coros_", env_file="../.env", extra="allow"
-    )
+    model_config = SettingsConfigDict(env_prefix="coros_", extra="ignore")
 
     api_url: str = Field(default="https://teameapi.coros.com")
     email: str
@@ -35,9 +36,7 @@ class CorosConfiguration(BaseSettings):
 
 
 class RedisConfiguration(BaseSettings):
-    model_config = SettingsConfigDict(
-        env_prefix="redis_", env_file="../.env", extra="allow"
-    )
+    model_config = SettingsConfigDict(env_prefix="redis_", extra="ignore")
 
     host: str = "localhost"
     port: int = 6379
