@@ -53,9 +53,6 @@ class RedisRepository(Repository):
             print(f"Can't parse activity data, for `{data_key}`")
             return None
 
-    def flush(self):
-        return self.redis.flushdb()
-
 
 def get_redis_repository() -> RedisRepository:
     from coros.configuration import coros_configuration
