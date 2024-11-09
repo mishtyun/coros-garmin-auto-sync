@@ -7,8 +7,7 @@ from coros.services import AuthService, ActivityService
 from garmin_connect.app import init_api
 from telegram.enums import DailyActivitiesDateTypes
 from telegram.keyboards import get_activities_dates_keyboard
-from telegram.utils import upload_and_get_url, get_activity_url
-
+from telegram.utils import upload_and_get_url, get_activities_message
 
 __all__ = ["router"]
 
@@ -77,9 +76,13 @@ async def process_sync_callback_button(callback_query: types.CallbackQuery):
     if not start_day or not end_date:
         return await callback_query.message.answer("Invalid dates")
 
-    message_to_send = await sync_all_activity_by_dates_handler(
-        garmin_api, start_day, end_date
+    await sync_all_activity_by_dates_handler(garmin_api, start_day, end_date)
+
+    activities = garmin_api.get_activities_by_date(
+        startdate=start_day, enddate=end_date
     )
+    message_to_send = get_activities_message(activities)
+
     await callback_query.message.answer(message_to_send)
 
 
@@ -101,15 +104,9 @@ async def process_get_callback_button(callback_query: types.CallbackQuery):
     activities = garmin_api.get_activities_by_date(
         startdate=start_day, enddate=end_date
     )
+    message_to_send = get_activities_message(activities)
 
-    message_to_send = ""
-    for activity in activities:
-        activity_url = get_activity_url(activity["activityId"])
-        message_to_send += f"{activity['activityName']}: {activity_url}\n"
-
-    await callback_query.message.answer(
-        message_to_send if message_to_send else "No activities",
-    )
+    await callback_query.message.answer(message_to_send)
 
 
 @router.message(F.text == START_HANDLER_COMMAND)
