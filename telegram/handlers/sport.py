@@ -65,21 +65,26 @@ async def process_sync_callback_button(callback_query: types.CallbackQuery):
 
     choice = callback_query.data
 
-    date_format = "%Y%m%d"
+    date_format, coros_date_format = "%Y%m%d", "%Y-%m-%d"
     start_day = end_date = None
 
     if choice.endswith(DailyActivitiesDateTypes.yesterday.value):
-        start_day = end_date = (datetime.now() - timedelta(1)).strftime(date_format)
+        start_day = end_date = datetime.now() - timedelta(1)
     elif choice.endswith(DailyActivitiesDateTypes.today.value):
-        start_day = end_date = datetime.now().strftime(date_format)
+        start_day = end_date = datetime.now()
 
     if not start_day or not end_date:
         return await callback_query.message.answer("Invalid dates")
 
-    await sync_all_activity_by_dates_handler(garmin_api, start_day, end_date)
+    await sync_all_activity_by_dates_handler(
+        garmin_api,
+        start_day.strftime(coros_date_format),
+        end_date.strftime(coros_date_format),
+    )
 
     activities = garmin_api.get_activities_by_date(
-        startdate=start_day, enddate=end_date
+        startdate=start_day.strftime(date_format),
+        enddate=end_date.strftime(date_format),
     )
     message_to_send = get_activities_message(activities)
 

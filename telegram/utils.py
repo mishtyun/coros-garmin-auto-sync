@@ -40,7 +40,14 @@ async def upload_and_get_url(garmin_api: Garmin, file_path: str) -> str | None:
 
 async def sync_all_activity_by_dates_handler(
     garmin_api: Garmin, start_date: str, end_date: str
-) -> str:
+) -> list[str]:
+    """
+    Sync (download from Coros and upload into Garmin) available activities between specific dates
+    :param garmin_api: Garmin-Api instance
+    :param start_date: String in the format YYYYMMDD
+    :param end_date: String in the format YYYYMMDD
+    :return: list of activity links
+    """
 
     AuthService(coros_configuration).get_access_token()
     file_paths = ActivityService(coros_configuration).download_daily_activities(
@@ -56,11 +63,7 @@ async def sync_all_activity_by_dates_handler(
             continue
         activity_links.append(garmin_activity_link)
 
-    return (
-        "\n".join(activity_links)
-        if activity_links
-        else "No activities or already synced"
-    )
+    return activity_links
 
 
 def get_activities_message(activities: Activities) -> str:
