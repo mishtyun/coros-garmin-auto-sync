@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "138a35632ec73837af88fcff5439586d7cfb9f169fa855dddec301498f1d52c0"
+            "sha256": "a9890a7c8df80e3be5a088189c254c5f6839a04fb3ca15c7dc79b23cdb75a7f9"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -32,12 +32,12 @@
         },
         "aiogram": {
             "hashes": [
-                "sha256:148cbba15c2b6e0bc482aff6ae86848ed43e023b7102336bad17698242693000",
-                "sha256:2674640ae74501ae30e68a5354e03f12e10db3adbcbd475bb56904536288c9c9"
+                "sha256:68529d7cb8b5cfa862b42c687cb5219eab9e8d589b4729e4806ece50a192d88f",
+                "sha256:ac86088673b04a30bb005a0075610d0048fcf4e9d1b33e42ab13502410cb1cf6"
             ],
             "index": "pypi",
-            "markers": "python_version >= '3.8'",
-            "version": "==3.13.1"
+            "markers": "python_version >= '3.9'",
+            "version": "==3.14.0"
         },
         "aiohappyeyeballs": {
             "hashes": [
@@ -447,11 +447,11 @@
         },
         "garmin-connect": {
             "hashes": [
-                "sha256:cf881b13d25761abb03f43092e6da7d4cd62e21ff5de81c791ec8544b343a3d0",
-                "sha256:dc6b5d3d985f5769f15c8b8aec6a92be365c60ea3789a1aa5c59a472d1026aed"
+                "sha256:6ff998de6f4677877dad35146620cc6c2b33d1a19ebe7de8169e632d1c314da3",
+                "sha256:97b90c99285f111e2c45f06db24e8fab81f31a69cc5d58a0058f994234bbdd8e"
             ],
             "index": "testpypi",
-            "version": "==0.0.1"
+            "version": "==0.0.2"
         },
         "garth": {
             "hashes": [
@@ -793,11 +793,11 @@
         },
         "packaging": {
             "hashes": [
-                "sha256:026ed72c8ed3fcce5bf8950572258698927fd1dbda10a5e981cdf0ac37f4f002",
-                "sha256:5b8f2217dbdbd2f7f384c41c628544e6d52f2d0f53c6d0c3ea61aa5d1d7ff124"
+                "sha256:09abb1bccd265c01f4a3aa3f7a7db064b36514d2cba19a2f694fe6150451a759",
+                "sha256:c228a6dc5e932d346bc5739379109d49e8853dd8223571c7c5b55260edc0b97f"
             ],
             "markers": "python_version >= '3.8'",
-            "version": "==24.1"
+            "version": "==24.2"
         },
         "pathspec": {
             "hashes": [
