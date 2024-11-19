@@ -11,11 +11,7 @@ __all__ = ["RedisRepository", "get_redis_repository"]
 def get_redis_client() -> Redis:
     from coros.configuration import redis_configuration
 
-    pool = ConnectionPool(
-        host=redis_configuration.host,
-        port=redis_configuration.port,
-        db=redis_configuration.db,
-    )
+    pool = ConnectionPool.from_url(redis_configuration.get_url())
     return Redis(connection_pool=pool)
 
 

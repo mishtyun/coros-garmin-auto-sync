@@ -38,9 +38,17 @@ class CorosConfiguration(BaseSettings):
 class RedisConfiguration(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="redis_", extra="ignore")
 
+    url: str | None = None
     host: str = "localhost"
     port: int = 6379
     db: int = 0
+
+    def get_url(self):
+        return (
+            f"redis://{self.host}:{self.port}/{self.db}"
+            if self.url is None
+            else self.url
+        )
 
 
 redis_configuration = RedisConfiguration()
