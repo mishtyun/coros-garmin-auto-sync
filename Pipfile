@@ -21,7 +21,7 @@ withings-sync = ">=4.2.4"
 requests = "*"
 mypy = "*"
 pre-commit = "*"
-garmin-connect = {version = "==0.0.2", index = "testpypi"}
+garmin-connect = {version = "==0.0.3", index = "testpypi"}
 
 [dev-packages]
 
