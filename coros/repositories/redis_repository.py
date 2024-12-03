@@ -16,7 +16,6 @@ def get_redis_client() -> Redis:
 
 
 class RedisRepository(Repository):
-
     def __init__(self, redis: Redis, expired_time: int | None = None):
         self.redis = redis
         self._expired_time = expired_time

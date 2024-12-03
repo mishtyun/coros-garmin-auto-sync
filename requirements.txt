@@ -7,10 +7,10 @@ python-dotenv
 pydantic-settings==2.5.2
 pydantic==2.9.2
 redis
-garth==0.4.45
-withings-sync==4.2.4
+garth>=0.4.45
+withings-sync>=4.2.4
 mypy
 pre-commit
 
 --extra-index-url https://test.pypi.org/simple/
-garmin-connect==0.0.2
+garmin-connect==0.0.4
