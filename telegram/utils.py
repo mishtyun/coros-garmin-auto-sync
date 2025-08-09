@@ -1,12 +1,15 @@
+import logging
 from asyncio import sleep
 from typing import NewType
 
 from garmin_connect.service import Garmin
 
 from coros.configuration import coros_configuration
-from coros.models import DateActivityFilter, Activity
+from coros.models import Activity, DateActivityFilter
 from coros.services import AuthService
 from coros.services.activity import ActivityService
+
+logger = logging.getLogger(__name__)
 
 
 __all__ = [
@@ -35,7 +38,7 @@ async def upload_and_get_url(garmin_api: Garmin, file_path: str) -> str | None:
         garmin_api.change_activity_visibility(activity_id, "public")
         return get_activity_url(activity_id)
     except Exception as e:
-        print(e)
+        logger.error(e)
 
 
 async def sync_all_activity_by_dates_handler(

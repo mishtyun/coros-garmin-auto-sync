@@ -46,7 +46,9 @@ def get_file_name(*, base_name: str, extension: str, **params) -> str:
     if not params:
         return f"{base_name}__{prefix}.{extension}"
 
+    replaced_base_name = base_name.replace(" ", "_")
     file_name = (
         "__".join((f"{key}-{value}" for key, value in params.items())) + f"__{prefix}"
     )
-    return f"{base_name}__{file_name}.{extension}"
+
+    return f"{replaced_base_name}__{file_name}.{extension}"
