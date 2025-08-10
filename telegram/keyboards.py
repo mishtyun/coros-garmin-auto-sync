@@ -19,6 +19,12 @@ def get_activities_dates_keyboard(callback_data_prefix: str | None = ""):
                 callback_data=f"{callback_data_prefix} {DailyActivitiesDateTypes.today.value}",
             )
         ],
+        [
+            types.InlineKeyboardButton(
+                text="Calendar",
+                callback_data=f"{callback_data_prefix}__date_from_calendar",
+            )
+        ],
     ]
 
     return types.InlineKeyboardMarkup(inline_keyboard=kb)
