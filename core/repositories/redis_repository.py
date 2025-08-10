@@ -1,11 +1,10 @@
-import json
 from typing import Any
 
 from redis import ConnectionPool, Redis
 
 from core.repositories import Repository
 
-__all__ = ["RedisRepository", "get_redis_repository"]
+__all__ = ["get_redis_client", "RedisRepository", "get_redis_repository"]
 
 
 def get_redis_client() -> Redis:
@@ -26,28 +25,10 @@ class RedisRepository(Repository):
             return value.decode()
         return None
 
-    def add_access_token(self, key: str, access_token: str) -> bool:
-        return self.redis.set(key, access_token, ex=self._expired_time)
-
-    def add_latest_activity_data(self, activity_data: dict) -> bool:
-        return self.redis.set("latest_activity", json.dumps(activity_data))
-
-    def get_latest_activity_data(self) -> dict | None:
-        data_key = "latest_activity"
-
-        activity_data_bytes = self.redis.get(data_key)
-        if not activity_data_bytes:
-            return None
-
-        if not isinstance(activity_data_bytes, bytes):
-            return None
-
-        activity_data_str = activity_data_bytes.decode()
-        try:
-            return json.loads(activity_data_str)
-        except json.JSONDecodeError:
-            print(f"Can't parse activity data, for `{data_key}`")
-            return None
+    def set(self, key: str, value: str, set_ex_time: bool = False) -> Any:
+        return self.redis.set(
+            key, value, ex=self._expired_time if set_ex_time else None
+        )
 
 
 def get_redis_repository(**kwargs) -> RedisRepository:
