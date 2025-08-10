@@ -50,11 +50,6 @@ class RedisRepository(Repository):
             return None
 
 
-def get_redis_repository() -> RedisRepository:
-    # TODO: fix this
-    from coros.configuration import coros_configuration
-
+def get_redis_repository(**kwargs) -> RedisRepository:
     redis_client = get_redis_client()
-    return RedisRepository(
-        redis=redis_client, expired_time=coros_configuration.access_token_expired_time
-    )
+    return RedisRepository(redis=redis_client, **kwargs)
