@@ -1,6 +1,6 @@
 import urllib3
 
-from coros.repositories.redis_repository import get_redis_repository
+from core.repositories.redis_repository import get_redis_repository
 from coros.configuration import CorosConfiguration
 
 __all__ = ["BaseService"]

@@ -1,15 +1,15 @@
 import json
 from typing import Any
 
-from redis import Redis, ConnectionPool
+from redis import ConnectionPool, Redis
 
-from coros.repositories import Repository
+from core.repositories import Repository
 
 __all__ = ["RedisRepository", "get_redis_repository"]
 
 
 def get_redis_client() -> Redis:
-    from coros.configuration import redis_configuration
+    from core.configuration import redis_configuration
 
     pool = ConnectionPool.from_url(redis_configuration.get_url())
     return Redis(connection_pool=pool)
@@ -51,6 +51,7 @@ class RedisRepository(Repository):
 
 
 def get_redis_repository() -> RedisRepository:
+    # TODO: fix this
     from coros.configuration import coros_configuration
 
     redis_client = get_redis_client()

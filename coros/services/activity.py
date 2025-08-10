@@ -5,7 +5,7 @@ from typing import Sequence
 from pydantic import TypeAdapter
 from urllib3 import HTTPResponse
 
-from coros.configuration import STATIC_ROOT
+from core.configuration import STATIC_ROOT
 from coros.constants import ActivityFileType, API_URLS
 from coros.models import Activity, DateActivityFilter
 from coros.services import BaseService

@@ -2,13 +2,15 @@ import asyncio
 
 from aiogram import Bot, Dispatcher
 
-import telegram.handlers as handlers
+import telegram.calendar.handlers as calendar_handlers
+from telegram import handlers
 from telegram.configuration import telegram_bot_settings
 
 __all__ = ["run_bot"]
 
 
 async def app(bot: Bot, dispatcher: Dispatcher):
+    dispatcher.include_router(calendar_handlers.router)
     dispatcher.include_router(handlers.sport_router)
     dispatcher.include_router(handlers.base_router)
     await dispatcher.start_polling(bot)
