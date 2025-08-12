@@ -13,4 +13,5 @@ API_URLS = {
     "get_activities": "/activity/query?size={size}&pageNumber={page_number}",
     "get_latest_activity": "/activity/query?size=1&pageNumber=1",
     "download_activity": "/activity/detail/download?labelId={label_id}&sportType={sport_type}&fileType={file_type}",
+    "get_activity_bytes": "/activity/detail/download?labelId={label_id}&sportType={sport_type}&fileType={file_type}",
 }

@@ -1,6 +1,6 @@
 import logging
 from asyncio import sleep
-from typing import NewType
+from typing import IO, NewType
 
 from garmin_connect.service import Garmin
 
@@ -26,9 +26,11 @@ def get_activity_url(activity_id: str):
     return f"https://connect.garmin.com/modern/activity/{activity_id}"
 
 
-async def upload_and_get_url(garmin_api: Garmin, file_path: str) -> str | None:
+async def upload_and_get_url(
+    garmin_api: Garmin, file_name: str, file: IO[bytes]
+) -> str | None:
     try:
-        garmin_api.upload_activity(file_path)
+        garmin_api.upload_activity_from_binary(file_name, file)
 
         await sleep(3)
 
@@ -53,14 +55,26 @@ async def sync_all_activity_by_dates_handler(
     """
 
     AuthService(coros_configuration).get_access_token()
-    file_paths = ActivityService(coros_configuration).download_daily_activities(
+    # file_paths = ActivityService(coros_configuration).download_daily_activities(
+    #     DateActivityFilter(start_date=start_date, end_date=end_date)
+    # )
+    files = ActivityService(coros_configuration).get_daily_activities_bytes(
         DateActivityFilter(start_date=start_date, end_date=end_date)
     )
 
     activity_links = []
 
-    for file_path in file_paths:
-        garmin_activity_link = await upload_and_get_url(garmin_api, file_path)
+    # for file_path in file_paths:
+    #     garmin_activity_link = await upload_and_get_url(garmin_api, file_path)
+    #     if not garmin_activity_link:
+    #         activity_links.append("One of the activity was synced already :)")
+    #         continue
+    #     activity_links.append(garmin_activity_link)
+
+    for file_name, file_content in files:
+        garmin_activity_link = await upload_and_get_url(
+            garmin_api, file_name=file_name, file=file_content
+        )
         if not garmin_activity_link:
             activity_links.append("One of the activity was synced already :)")
             continue

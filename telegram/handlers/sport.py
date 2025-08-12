@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from aiogram import F, Router, types
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
+from aiogram.types import BufferedInputFile
 from garmin_connect.app import init_api
 from garmin_connect.configuration import garmin_connect_configuration
 from garmin_connect.repository import FileOAuthRepository
@@ -36,11 +37,19 @@ async def download_latest_activity_button_handler(message: types.Message):
     logger.info("Downloading latest activity")
     try:
         AuthService(coros_configuration).get_access_token()
-        file_path = ActivityService(coros_configuration).download_latest_activity()
 
-        latest_activity_file = types.FSInputFile(file_path)
-        await message.reply_document(document=latest_activity_file)
-        logger.info(f"Successfully downloaded and sent latest activity: {file_path}")
+        activity_name, activity_content = ActivityService(
+            coros_configuration
+        ).get_latest_activity_bytes()
+
+        activity_file = BufferedInputFile(
+            file_name=activity_name, file=activity_content.read()
+        )
+
+        await message.reply_document(document=activity_file, caption="Latest activity")
+        logger.info(
+            f"Successfully downloaded and sent latest activity: {activity_name}"
+        )
     except Exception as e:
         logger.error(
             f"Error while downloading latest activity: {str(e)}", exc_info=True
@@ -52,10 +61,14 @@ async def download_latest_activity_button_handler(message: types.Message):
 async def sync_latest_activity_button_handler(message: types.Message):
     logger.info("Syncing latest activity")
     try:
-        access_token = AuthService(coros_configuration).get_access_token()
-        file_path = ActivityService(coros_configuration).download_latest_activity()
+        AuthService(coros_configuration).get_access_token()
+        activity_name, activity_content = ActivityService(
+            coros_configuration
+        ).get_latest_activity_bytes()
 
-        garmin_activity_link = await upload_and_get_url(garmin_api, file_path)
+        garmin_activity_link = await upload_and_get_url(
+            garmin_api, file_name=activity_name, file=activity_content
+        )
 
         await message.answer(
             f"Synced successfully\nActivity link {garmin_activity_link}"
