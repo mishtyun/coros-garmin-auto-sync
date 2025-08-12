@@ -19,7 +19,7 @@ aiogram = "*"
 requests = "*"
 mypy = "*"
 pre-commit = "*"
-garmin-connect = {version = "==0.0.8", index = "testpypi"}
+garmin-connect = {version = "==0.0.9", index = "testpypi"}
 cherrypy = "*"
 
 [dev-packages]

@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "8423bdfc32c36c1ad2505df7bdc25d46108ba527d249c069d12648816d01263d"
+            "sha256": "a2440344146240de102c7b4752ab585115f21881eb23a4ca9d3fb65b58d0f544"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -461,12 +461,12 @@
         },
         "garmin-connect": {
             "hashes": [
-                "sha256:098497d6c952fbae311f3a58c1dd8bcc140a649d1ba8b0793a5289851a2a928d",
-                "sha256:5bb929e98dede4ac5d20a68d5fb91896f0af8ff66dedc5862f4deaf2ac638593"
+                "sha256:13c754328334760a7ed8380e56ae5f724f539fa2a892d480282d50c04e16e3c4",
+                "sha256:c70be08b202beb8659aaeab6ea75d2e70e8d133069e7c4deb2cf53b099e759fb"
             ],
             "index": "testpypi",
             "markers": "python_version >= '3.11'",
-            "version": "==0.0.8"
+            "version": "==0.0.9"
         },
         "garth": {
             "hashes": [
