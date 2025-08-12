@@ -1,10 +1,10 @@
 services:
   - type: web
-    name: team-house-server-prod
+    name: auth-sync-service-dev
     runtime: docker
     plan: starter
     region: frankfurt
-    branch: prod
+    branch: dev
     dockerfilePath: ./deploy/Dockerfile
     envVars:
       - key: CELERY_BROKER
@@ -12,7 +12,7 @@ services:
           name: celery-redis
           type: redis
           property: connectionString
-      - fromGroup: team-house-env-vars
+      - fromGroup: auth-sync-service
 
   - type: redis
     name: celery-redis
@@ -22,7 +22,7 @@ services:
     ipAllowList: []
 
 envVarGroups:
-  - name: team-house-env-vars
+  - name: auth-sync-service
     envVars:
       - key: TELEGRAM_TOKEN
         value: tg_token
