@@ -1,0 +1,38 @@
+services:
+  - type: web
+    name: team-house-server-prod
+    runtime: docker
+    plan: starter
+    region: frankfurt
+    branch: prod
+    dockerfilePath: ./deploy/Dockerfile
+    envVars:
+      - key: CELERY_BROKER
+        fromService:
+          name: celery-redis
+          type: redis
+          property: connectionString
+      - fromGroup: team-house-env-vars
+
+  - type: redis
+    name: celery-redis
+    region: frankfurt
+    plan: free
+    maxmemoryPolicy: noeviction
+    ipAllowList: []
+
+envVarGroups:
+  - name: team-house-env-vars
+    envVars:
+      - key: TELEGRAM_TOKEN
+        value: tg_token
+      - key: COROS_API_URL
+        value: https://teameuapi.coros.com
+      - key: COROS_EMAIL
+        value: user_email
+      - key: COROS_PASSWORD
+        value: user_password
+      - key: GARMIN_CONNECT_EMAIL
+        value: user_email
+      - key: GARMIN_CONNECT_PASSWORD
+        value: user_password
