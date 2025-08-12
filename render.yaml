@@ -7,14 +7,14 @@ services:
     branch: dev
     dockerfilePath: ./deploy/Dockerfile
     envVars:
-      - key: CELERY_BROKER
+      - key: REDIS_URL
         fromService:
-          name: celery-redis
+          name: redis
           type: redis
           property: connectionString
 
   - type: redis
-    name: celery-redis
+    name: redis
     region: frankfurt
     plan: free
     maxmemoryPolicy: noeviction
