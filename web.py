@@ -9,4 +9,10 @@ class run_web(object):
         return "Hello World!"
 
 
-cherrypy.quickstart(run_web())
+cherrypy.config.update(
+    {
+        "server.socket_host": "0.0.0.0",
+        "server.socket_port": 8000,
+    }
+)
+cherrypy.quickstart(run_web(), "/")
