@@ -1,16 +1,14 @@
-aiogram==3.14.0
-requests==2.26.0
-
 black
 urllib3
 python-dotenv
 pydantic-settings==2.5.2
 pydantic==2.9.2
 redis
-garth==0.4.45
-withings-sync==4.2.4
+aiogram==3.21.0
+requests
 mypy
 pre-commit
 
+
 --extra-index-url https://test.pypi.org/simple/
-garmin-connect==0.0.2
+garmin-connect==0.0.8
