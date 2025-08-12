@@ -1,8 +1,10 @@
-FROM python:3.13.6-alpine3.21
+FROM python:3.13-slim
 
 WORKDIR /app
 
-RUN apk add --no-cache ffmpeg libsm6 libxext6
+RUN apt-get update && apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends ffmpeg libsm6 libxext6 && \
+    rm -rf /var/lib/apt/lists/*
 
 RUN python -m pip install --upgrade pip
 RUN pip install pip pipenv && pip install --upgrade pip pipenv==2023.6.26
