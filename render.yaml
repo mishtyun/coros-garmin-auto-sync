@@ -2,7 +2,7 @@ services:
   - type: web
     name: auth-sync-service-dev
     runtime: docker
-    plan: starter
+    plan: free
     region: frankfurt
     branch: dev
     dockerfilePath: ./deploy/Dockerfile
