@@ -13,7 +13,11 @@ from coros import coros_configuration
 from coros.services import ActivityService, AuthService
 from telegram.calendar.keyboards import generate_calendar
 from telegram.enums import DailyActivitiesDateTypes
-from telegram.keyboards import get_activities_dates_keyboard
+from telegram.keyboards import (
+    SportActionButtons,
+    get_activities_dates_inline_keyboard,
+    get_sport_action_keyboard,
+)
 from telegram.states.date_picker import CalendarDatePicker
 from telegram.utils import get_activities_message, upload_and_get_url
 
@@ -32,7 +36,7 @@ garmin_api = init_api(
 calendar_datepicker_user_data = {}
 
 
-@router.message(F.text == "Download latest activity")
+@router.message(F.text == SportActionButtons.DOWNLOAD_LATEST)
 async def download_latest_activity_button_handler(message: types.Message):
     logger.info("Downloading latest activity")
     try:
@@ -57,7 +61,7 @@ async def download_latest_activity_button_handler(message: types.Message):
         await message.answer("Error while downloading")
 
 
-@router.message(F.text == "Sync latest activity")
+@router.message(F.text == SportActionButtons.SYNC_LATEST)
 async def sync_latest_activity_button_handler(message: types.Message):
     logger.info("Syncing latest activity")
     try:
@@ -79,18 +83,18 @@ async def sync_latest_activity_button_handler(message: types.Message):
         await message.answer("Error while syncing")
 
 
-@router.message(F.text == "Sync all daily activities")
+@router.message(F.text == SportActionButtons.SYNC_DAILY)
 async def sync_all_daily_activities_button_handler(message: types.Message):
     logger.info("Preparing to sync all daily activities")
-    keyboard = get_activities_dates_keyboard(callback_data_prefix="sync")
+    keyboard = get_activities_dates_inline_keyboard(callback_data_prefix="sync")
     await message.reply("When", reply_markup=keyboard)
     logger.info("Sent date selection keyboard for syncing all daily activities")
 
 
-@router.message(F.text == "Get daily activities")
+@router.message(F.text == SportActionButtons.GET_DAILY)
 async def get_all_daily_activities_button_handler(message: types.Message):
     logger.info("Preparing to get all daily activities")
-    keyboard = get_activities_dates_keyboard(callback_data_prefix="get")
+    keyboard = get_activities_dates_inline_keyboard(callback_data_prefix="get")
     await message.reply("When", reply_markup=keyboard)
     logger.info("Sent date selection keyboard for getting all daily activities")
 
@@ -190,14 +194,7 @@ async def process_get_callback_button_after_datepicker(
 @router.message(F.text == START_HANDLER_COMMAND)
 async def sport_cmd_start(message: types.Message):
     logger.info("Starting sport command")
-    kb = [
-        [types.KeyboardButton(text="Download latest activity")],
-        [types.KeyboardButton(text="Sync latest activity")],
-        [types.KeyboardButton(text="Sync all daily activities")],
-        [types.KeyboardButton(text="Get daily activities")],
-    ]
-
-    keyboard = types.ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True)
+    keyboard = get_sport_action_keyboard()
 
     await message.answer("Action ?", reply_markup=keyboard)
     logger.info("Sport command keyboard sent")

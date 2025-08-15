@@ -2,10 +2,42 @@ from aiogram import types
 
 from telegram.enums import DailyActivitiesDateTypes
 
-__all__ = ["get_activities_dates_keyboard"]
+__all__ = [
+    "SportActionButtons",
+    "get_sport_action_keyboard",
+    "get_activities_dates_inline_keyboard",
+]
 
 
-def get_activities_dates_keyboard(callback_data_prefix: str | None = ""):
+class SportActionButtons:
+    DOWNLOAD_LATEST = "Download latest"
+    SYNC_LATEST = "Sync latest"
+    SYNC_DAILY = "Sync daily"
+    GET_DAILY = "Get daily"
+
+
+def get_sport_action_keyboard() -> types.ReplyKeyboardMarkup:
+    kb = [
+        [
+            types.KeyboardButton(text=SportActionButtons.DOWNLOAD_LATEST),
+            types.KeyboardButton(text=SportActionButtons.SYNC_LATEST),
+        ],
+        [
+            types.KeyboardButton(text=SportActionButtons.SYNC_DAILY),
+            types.KeyboardButton(text=SportActionButtons.GET_DAILY),
+        ],
+    ]
+
+    keyboard = types.ReplyKeyboardMarkup(
+        keyboard=kb,
+        resize_keyboard=True,
+    )
+    return keyboard
+
+
+def get_activities_dates_inline_keyboard(
+    callback_data_prefix: str | None = "",
+) -> types.InlineKeyboardMarkup:
     kb = [
         [
             types.InlineKeyboardButton(
