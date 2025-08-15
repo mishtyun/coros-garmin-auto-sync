@@ -20,7 +20,7 @@ requests = "*"
 mypy = "*"
 pre-commit = "*"
 cherrypy = "*"
-garmin-connect = {version = "==0.0.9.3", index = "testpypi"}
+garmin-connect = {version = "==0.0.9.4", index = "testpypi"}
 
 [dev-packages]
 
