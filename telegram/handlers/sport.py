@@ -47,7 +47,7 @@ async def download_latest_activity_button_handler(message: types.Message):
         ).get_latest_activity_bytes()
 
         activity_file = BufferedInputFile(
-            file_name=activity_name, file=activity_content.read()
+            filename=activity_name, file=activity_content.read()
         )
 
         await message.reply_document(document=activity_file, caption="Latest activity")
