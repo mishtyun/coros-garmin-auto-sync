@@ -2,6 +2,7 @@ import logging
 from asyncio import sleep
 from typing import IO, NewType
 
+from garmin_connect.exceptions import GarthHTTPError
 from garmin_connect.service import Garmin
 
 from coros.configuration import coros_configuration
@@ -28,19 +29,34 @@ def get_activity_url(activity_id: str):
 
 async def upload_and_get_url(
     garmin_api: Garmin, file_name: str, file: IO[bytes]
-) -> str | None:
+) -> tuple[bool, str] | tuple[bool, None]:
     try:
         garmin_api.upload_activity_from_binary(file_name, file)
-
+        uploaded = True
         await sleep(3)
+    except GarthHTTPError as e:
+        error_json: dict = e.error.response.json()
+        error_messages = (
+            error_json.get("detailedImportResult").get("failures")[0].get("messages")
+        )
 
-        latest_activity = garmin_api.get_last_activity()
-        activity_id = latest_activity.get("activityId")
+        duplicate_message = {"code": 202, "content": "Duplicate Activity."}
 
-        garmin_api.change_activity_visibility(activity_id, "public")
-        return get_activity_url(activity_id)
+        if duplicate_message not in error_messages:
+            raise Exception from e
+
+        uploaded = False
+        logger.info("Activity already exists. Skipping upload.")
+
     except Exception as e:
         logger.error(e)
+        return False, None
+
+    latest_activity = garmin_api.get_last_activity()
+    activity_id = latest_activity.get("activityId")
+
+    garmin_api.change_activity_visibility(activity_id, "public")
+    return uploaded, get_activity_url(activity_id)
 
 
 async def sync_all_activity_by_dates_handler(
@@ -72,7 +88,7 @@ async def sync_all_activity_by_dates_handler(
     #     activity_links.append(garmin_activity_link)
 
     for file_name, file_content in files:
-        garmin_activity_link = await upload_and_get_url(
+        _, garmin_activity_link = await upload_and_get_url(
             garmin_api, file_name=file_name, file=file_content
         )
         if not garmin_activity_link:

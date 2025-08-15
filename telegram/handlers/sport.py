@@ -75,13 +75,17 @@ async def sync_latest_activity_button_handler(message: types.Message):
             coros_configuration
         ).get_latest_activity_bytes()
 
-        garmin_activity_link = await upload_and_get_url(
+        is_uploaded, garmin_activity_link = await upload_and_get_url(
             garmin_api, file_name=activity_name, file=activity_content
         )
 
-        await message.answer(
+        message_to_answer = (
             f"Synced successfully\nActivity link {garmin_activity_link}"
+            if is_uploaded
+            else f"Already synced\nActivity link {garmin_activity_link}"
         )
+
+        await message.answer(message_to_answer)
         logger.info(f"Successfully synced latest activity: {garmin_activity_link}")
     except Exception as e:
         logger.error(f"Error while syncing latest activity: {str(e)}", exc_info=True)
