@@ -10,10 +10,10 @@ __all__ = [
 
 
 class SportActionButtons:
-    DOWNLOAD_LATEST = "Download latest"
-    SYNC_LATEST = "Sync latest"
-    SYNC_DAILY = "Sync daily"
-    GET_DAILY = "Get daily"
+    DOWNLOAD_LATEST = "⬇️ Download latest"
+    SYNC_LATEST = "🔄 Sync latest"
+    SYNC_DAILY = "📅 Sync daily"
+    GET_DAILY = "📥 Get daily"
 
 
 def get_sport_action_keyboard() -> types.ReplyKeyboardMarkup:
