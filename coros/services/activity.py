@@ -206,11 +206,16 @@ class ActivityService(BaseService):
         return files
 
     def download_latest_activity(self) -> str:
-        latest_activity: Activity = self.get_latest_activity(save_response=False)
+        latest_activity: Activity | None = self.get_latest_activity(save_response=False)
         return self.download_activity(latest_activity)
 
     def get_latest_activity_bytes(self) -> tuple[str, io.BytesIO] | tuple[None, None]:
-        latest_activity: Activity = self.get_latest_activity(save_response=False)
+        latest_activity: Activity | None = self.get_latest_activity(save_response=False)
+
+        if not latest_activity:
+            logger.info("[get_latest_activity_bytes] Last activity not found")
+            return None, None
+
         activity_name, activity_content = self.get_activity_bytes(latest_activity)
 
         return activity_name, activity_content

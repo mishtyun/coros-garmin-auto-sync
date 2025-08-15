@@ -40,11 +40,16 @@ calendar_datepicker_user_data = {}
 async def download_latest_activity_button_handler(message: types.Message):
     logger.info("Downloading latest activity")
     try:
-        AuthService(coros_configuration).get_access_token()
+        AuthService(coros_configuration).get_or_set_access_token()
 
         activity_name, activity_content = ActivityService(
             coros_configuration
         ).get_latest_activity_bytes()
+
+        if not activity_name or not activity_content:
+            logger.info("Latest activity not found")
+            await message.answer("Latest activity not found")
+            return
 
         activity_file = BufferedInputFile(
             filename=activity_name, file=activity_content.read()
@@ -65,7 +70,7 @@ async def download_latest_activity_button_handler(message: types.Message):
 async def sync_latest_activity_button_handler(message: types.Message):
     logger.info("Syncing latest activity")
     try:
-        AuthService(coros_configuration).get_access_token()
+        AuthService(coros_configuration).get_or_set_access_token()
         activity_name, activity_content = ActivityService(
             coros_configuration
         ).get_latest_activity_bytes()

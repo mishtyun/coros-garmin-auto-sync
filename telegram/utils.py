@@ -54,7 +54,7 @@ async def sync_all_activity_by_dates_handler(
     :return: list of activity links
     """
 
-    AuthService(coros_configuration).get_access_token()
+    AuthService(coros_configuration).get_or_set_access_token()
     # file_paths = ActivityService(coros_configuration).download_daily_activities(
     #     DateActivityFilter(start_date=start_date, end_date=end_date)
     # )
