@@ -80,12 +80,12 @@ async def sync_latest_activity_button_handler(message: types.Message):
         )
 
         message_to_answer = (
-            f"Synced successfully\nActivity link {garmin_activity_link}"
+            f"Synced successfully!\n{garmin_activity_link}"
             if is_uploaded
-            else f"Already synced\nActivity link {garmin_activity_link}"
+            else f"Already synced :)\n{garmin_activity_link}"
         )
 
-        await message.answer(message_to_answer)
+        await message.reply(message_to_answer)
         logger.info(f"Successfully synced latest activity: {garmin_activity_link}")
     except Exception as e:
         logger.error(f"Error while syncing latest activity: {str(e)}", exc_info=True)
@@ -205,7 +205,7 @@ async def sport_cmd_start(message: types.Message):
     logger.info("Starting sport command")
     keyboard = get_sport_action_keyboard()
 
-    await message.answer("Action ?", reply_markup=keyboard)
+    await message.answer("🏊‍♂️🏃‍♂️🚴‍♀️ Hey athlete!", reply_markup=keyboard)
     logger.info("Sport command keyboard sent")
 
 
