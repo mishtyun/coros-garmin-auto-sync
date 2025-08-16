@@ -20,6 +20,9 @@ class RedisRepository(Repository):
         self.redis = redis
         self._expired_time = expired_time
 
+    def flush(self) -> Any:
+        return self.redis.flushdb()
+
     def get(self, key: str) -> Any:
         if value := self.redis.get(key):
             return value.decode()
