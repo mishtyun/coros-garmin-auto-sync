@@ -1,10 +1,10 @@
-from pydantic import BaseModel, Field
+from core.schemas import CamelModel
 
-__all__ = ["Activity"]
+__all__ = ["ActivityShortSchema"]
 
 
-class Activity(BaseModel):
+class ActivityShortSchema(CamelModel):
     date: int
-    label_id: str = Field(validation_alias="labelId")
+    label_id: str
     name: str
-    sport_type: int = Field(validation_alias="sportType")
+    sport_type: int

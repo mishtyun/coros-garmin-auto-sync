@@ -1,15 +1,17 @@
 import logging
 from asyncio import sleep
-from typing import IO, NewType
+from typing import IO
 
 from aiogram import methods, types
 from garmin_connect.exceptions import GarthHTTPError
 from garmin_connect.service import Garmin
+from pydantic import TypeAdapter
 
 from coros.configuration import coros_configuration
-from coros.models import Activity, DateActivityFilter
+from coros.models import DateActivityFilter
 from coros.services import AuthService
 from coros.services.activity import ActivityService
+from telegram.schemas.activity import GarminActivitiesSchema
 
 logger = logging.getLogger(__name__)
 
@@ -20,8 +22,6 @@ __all__ = [
     "get_activities_message_text",
     "sync_all_activity_by_dates_handler",
 ]
-
-Activities = NewType("Activities", list[Activity])
 
 
 def get_activity_url(activity_id: str):
@@ -41,13 +41,13 @@ async def upload_and_get_url(
             error_json.get("detailedImportResult").get("failures")[0].get("messages")
         )
 
-        duplicate_message = {"code": 202, "content": "Duplicate Activity."}
+        duplicate_message = {"code": 202, "content": "Duplicate ActivityShortSchema."}
 
         if duplicate_message not in error_messages:
             raise Exception from e
 
         uploaded = False
-        logger.info("Activity already exists. Skipping upload.")
+        logger.info("ActivityShortSchema already exists. Skipping upload.")
 
     except Exception as e:
         logger.error(e)
@@ -72,21 +72,12 @@ async def sync_all_activity_by_dates_handler(
     """
 
     AuthService(coros_configuration).get_or_set_access_token()
-    # file_paths = ActivityService(coros_configuration).download_daily_activities(
-    #     DateActivityFilter(start_date=start_date, end_date=end_date)
-    # )
+
     files = ActivityService(coros_configuration).get_daily_activities_bytes(
         DateActivityFilter(start_date=start_date, end_date=end_date)
     )
 
     activity_links = []
-
-    # for file_path in file_paths:
-    #     garmin_activity_link = await upload_and_get_url(garmin_api, file_path)
-    #     if not garmin_activity_link:
-    #         activity_links.append("One of the activity was synced already :)")
-    #         continue
-    #     activity_links.append(garmin_activity_link)
 
     for file_name, file_content in files:
         _, garmin_activity_link = await upload_and_get_url(
@@ -100,25 +91,28 @@ async def sync_all_activity_by_dates_handler(
     return activity_links
 
 
-def get_activities_message_text(activities: Activities) -> str:
+def get_activities_message_text(activities: GarminActivitiesSchema) -> str:
     message_to_send = ""
     for activity in activities:
-        activity_url = get_activity_url(activity["activityId"])
-        message_to_send += f"{activity['activityName']}: {activity_url}\n"
+        activity_url = get_activity_url(activity.activity_id)
+        message_to_send += f"{activity.activity_name}\n{activity_url}\n"
 
     return message_to_send
 
 
 def get_activities_reply(
     callback_query: types.CallbackQuery,
-    activities: Activities,
+    activities: list[dict],
     start_date: str,
     end_date: str,
 ) -> methods.SendMessage:
+    activities = TypeAdapter(GarminActivitiesSchema).validate_python(activities)
     message_text = get_activities_message_text(activities)
 
     if message_text:
-        message_text = f"Activities from {start_date} to {end_date}:\n{message_text}"
+        message_text = (
+            f"📊 Activities ({start_date}) -> ({end_date}):\n\n{message_text}"
+        )
 
     if not message_text:
         return callback_query.answer("No activities :(")

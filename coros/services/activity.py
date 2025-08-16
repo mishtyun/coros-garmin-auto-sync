@@ -9,7 +9,7 @@ from urllib3 import HTTPResponse
 
 from core.configuration import STATIC_ROOT
 from coros.constants import API_URLS, ActivityFileType
-from coros.models import Activity, DateActivityFilter
+from coros.models import ActivityShortSchema, DateActivityFilter
 from coros.services import BaseService
 from coros.services.utils import get_caller_name, get_file_name
 
@@ -52,7 +52,7 @@ class ActivityService(BaseService):
 
     def get_activities(
         self, date_filters: DateActivityFilter | None = None
-    ) -> list[Activity]:
+    ) -> list[ActivityShortSchema]:
         activities_url = self.get_url(date_filters=date_filters)
         res = self.http.request("GET", activities_url, headers=self.get_headers())
 
@@ -60,7 +60,7 @@ class ActivityService(BaseService):
         if not activities_data or not isinstance(activities_data, Sequence):
             return []
 
-        ta = TypeAdapter(list[Activity])
+        ta = TypeAdapter(list[ActivityShortSchema])
         return ta.validate_python(activities_data)
 
     def get_latest_activity(
@@ -68,7 +68,7 @@ class ActivityService(BaseService):
         *,
         date_filters: DateActivityFilter | None = None,
         save_response: bool = False,
-    ) -> None | Activity:
+    ) -> None | ActivityShortSchema:
         latest_activity_url = self.get_url(date_filters=date_filters, size=1)
         res = self.http.request("GET", latest_activity_url, headers=self.get_headers())
 
@@ -77,7 +77,7 @@ class ActivityService(BaseService):
             return None
 
         activity_data = activity_data[0]
-        activity_model = Activity.model_validate(activity_data)
+        activity_model = ActivityShortSchema.model_validate(activity_data)
 
         if save_response:
             self.redis_repository.add_latest_activity_data(activity_model.model_dump())
@@ -86,7 +86,7 @@ class ActivityService(BaseService):
 
     @staticmethod
     def _get_activity_file_path(
-        activity_model: Activity,
+        activity_model: ActivityShortSchema,
         extension: str = ActivityFileType.FIT.name,
         return_only_name: bool = False,
     ) -> str:
@@ -109,7 +109,7 @@ class ActivityService(BaseService):
             return {}
         return response.json()
 
-    def download_activity(self, activity: Activity) -> str | None:
+    def download_activity(self, activity: ActivityShortSchema) -> str | None:
         file_path = self._get_activity_file_path(activity)
 
         if os.path.exists(file_path):
@@ -144,7 +144,9 @@ class ActivityService(BaseService):
 
         return file_path
 
-    def get_activity_bytes(self, activity: Activity) -> tuple[str, io.BytesIO] | None:
+    def get_activity_bytes(
+        self, activity: ActivityShortSchema
+    ) -> tuple[str, io.BytesIO] | None:
         query_params_to_download = {
             "label_id": activity.label_id,
             "sport_type": activity.sport_type,
@@ -206,11 +208,15 @@ class ActivityService(BaseService):
         return files
 
     def download_latest_activity(self) -> str:
-        latest_activity: Activity | None = self.get_latest_activity(save_response=False)
+        latest_activity: ActivityShortSchema | None = self.get_latest_activity(
+            save_response=False
+        )
         return self.download_activity(latest_activity)
 
     def get_latest_activity_bytes(self) -> tuple[str, io.BytesIO] | tuple[None, None]:
-        latest_activity: Activity | None = self.get_latest_activity(save_response=False)
+        latest_activity: ActivityShortSchema | None = self.get_latest_activity(
+            save_response=False
+        )
 
         if not latest_activity:
             logger.info("[get_latest_activity_bytes] Last activity not found")
