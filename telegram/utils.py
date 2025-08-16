@@ -41,7 +41,7 @@ async def upload_and_get_url(
             error_json.get("detailedImportResult").get("failures")[0].get("messages")
         )
 
-        duplicate_message = {"code": 202, "content": "Duplicate ActivityShortSchema."}
+        duplicate_message = {"code": 202, "content": "Duplicate Activity."}
 
         if duplicate_message not in error_messages:
             raise Exception from e
