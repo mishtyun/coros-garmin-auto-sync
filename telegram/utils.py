@@ -2,6 +2,7 @@ import logging
 from asyncio import sleep
 from typing import IO, NewType
 
+from aiogram import methods, types
 from garmin_connect.exceptions import GarthHTTPError
 from garmin_connect.service import Garmin
 
@@ -16,7 +17,7 @@ logger = logging.getLogger(__name__)
 __all__ = [
     "get_activity_url",
     "upload_and_get_url",
-    "get_activities_message",
+    "get_activities_message_text",
     "sync_all_activity_by_dates_handler",
 ]
 
@@ -99,10 +100,27 @@ async def sync_all_activity_by_dates_handler(
     return activity_links
 
 
-def get_activities_message(activities: Activities) -> str:
+def get_activities_message_text(activities: Activities) -> str:
     message_to_send = ""
     for activity in activities:
         activity_url = get_activity_url(activity["activityId"])
         message_to_send += f"{activity['activityName']}: {activity_url}\n"
 
-    return message_to_send if message_to_send else "No activities"
+    return message_to_send
+
+
+def get_activities_reply(
+    callback_query: types.CallbackQuery,
+    activities: Activities,
+    start_date: str,
+    end_date: str,
+) -> methods.SendMessage:
+    message_text = get_activities_message_text(activities)
+
+    if message_text:
+        message_text = f"Activities from {start_date} to {end_date}:\n{message_text}"
+
+    if not message_text:
+        return callback_query.answer("No activities :(")
+
+    return callback_query.message.answer(message_text)

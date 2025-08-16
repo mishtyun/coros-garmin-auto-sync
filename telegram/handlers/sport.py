@@ -19,7 +19,7 @@ from telegram.keyboards import (
     get_sport_action_keyboard,
 )
 from telegram.states.date_picker import CalendarDatePicker
-from telegram.utils import get_activities_message, upload_and_get_url
+from telegram.utils import get_activities_reply, upload_and_get_url
 
 logger = logging.getLogger(__name__)
 
@@ -116,33 +116,32 @@ async def process_sync_callback_button(callback_query: types.CallbackQuery):
     choice = callback_query.data
 
     date_format, coros_date_format = "%Y-%m-%d", "%Y%m%d"
-    start_day = end_date = None
+    start_date = end_date = None
 
     if choice.endswith(DailyActivitiesDateTypes.yesterday.value):
-        start_day = end_date = datetime.now() - timedelta(1)
+        start_date = end_date = datetime.now() - timedelta(1)
     elif choice.endswith(DailyActivitiesDateTypes.today.value):
-        start_day = end_date = datetime.now()
+        start_date = end_date = datetime.now()
 
-    if not start_day or not end_date:
+    if not start_date or not end_date:
         logger.warning("Invalid dates for sync")
         return await callback_query.message.answer("Invalid dates")
 
-    logger.info(f"Syncing activities for date range: {start_day} to {end_date}")
+    logger.info(f"Syncing activities for date range: {start_date} to {end_date}")
     await sync_all_activity_by_dates_handler(
         garmin_api,
-        start_day.strftime(coros_date_format),
+        start_date.strftime(coros_date_format),
         end_date.strftime(coros_date_format),
     )
 
     activities = garmin_api.get_activities_by_date(
-        start_date=start_day.strftime(date_format),
+        start_date=start_date.strftime(date_format),
         end_date=end_date.strftime(date_format),
     )
-    message_to_send = get_activities_message(activities)
+    await get_activities_reply(callback_query, activities, start_date, end_date)
 
-    await callback_query.message.answer(message_to_send)
     logger.info(
-        f"Sync completed and message sent for date range: {start_day} to {end_date}"
+        f"Sync completed and message sent for date range: {start_date} to {end_date}"
     )
 
 
@@ -192,9 +191,8 @@ async def process_get_callback_button_after_datepicker(
     activities = garmin_api.get_activities_by_date(
         start_date=start_date, end_date=end_date
     )
-    message_to_send = get_activities_message(activities)
+    await get_activities_reply(callback_query, activities, start_date, end_date)
 
-    await callback_query.message.answer(message_to_send)
     logger.info(
         f"Activities retrieved and message sent for date range: {start_date} to {end_date}"
     )
@@ -215,7 +213,6 @@ async def process_day_selection(callback: types.CallbackQuery, state: FSMContext
     _, year, month, day = callback.data.split("_")
     formatted_date = f"{year}-{month}-{day}"
 
-    await callback.answer(f"Вы выбрали {formatted_date}")
     await process_get_callback_button_after_datepicker(
         callback, formatted_date, formatted_date
     )
