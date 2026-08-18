@@ -9,7 +9,7 @@ __all__ = ["CorosConfiguration"]
 class CorosConfiguration(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="coros_", extra="ignore")
 
-    api_url: str = Field(default="https://teameapi.coros.com")
+    api_url: str = Field(default="https://teameuapi.coros.com")
     email: str
     password: str | None = None
     password_md5: str | None = None
