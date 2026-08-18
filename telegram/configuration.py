@@ -12,6 +12,8 @@ class TelegramBotConfiguration(BaseSettings):
     token: str
     allowed_user_ids: str = ""
     autosync_interval: int = 60 * 10  # seconds between autosync cycles
+    owner_id: int | None = None  # telegram id to receive admin alerts
+    digest_hour: int = 17  # UTC hour after which daily/weekly digests are sent
 
     @property
     def allowed_ids(self) -> set[int]:

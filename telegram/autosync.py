@@ -22,10 +22,31 @@ __all__ = ["autosync_loop"]
 COROS_DATE_FORMAT = "%Y%m%d"
 
 
+# consecutive per-user sync failures; alert the owner once at the threshold
+OWNER_ALERT_ERROR_THRESHOLD = 3
+_sync_error_counts: dict[int, int] = {}
+
+
+async def notify_owner(bot: Bot, text: str, exclude_tg_id: int | None = None) -> None:
+    owner_id = telegram_bot_settings.owner_id
+    if not owner_id or owner_id == exclude_tg_id:
+        return
+    try:
+        await bot.send_message(owner_id, text)
+    except Exception as e:
+        logger.warning(f"Can't notify owner: {e}")
+
+
 async def _disable_autosync(bot: Bot, profile: UserProfile, reason: str) -> None:
     profile.autosync = False
     get_user_redis_repository().save_profile(profile)
     await bot.send_message(profile.tg_id, f"⏸ Autosync disabled: {reason}")
+    await notify_owner(
+        bot,
+        f"⚠️ Autosync disabled for {profile.coros_email} "
+        f"(tg_id={profile.tg_id}): {reason}",
+        exclude_tg_id=profile.tg_id,
+    )
 
 
 async def _sync_user(bot: Bot, profile: UserProfile) -> None:
@@ -117,6 +138,7 @@ async def run_autosync_cycle(bot: Bot) -> None:
 
         try:
             await _sync_user(bot, profile)
+            _sync_error_counts.pop(profile.tg_id, None)
         except GarminSessionExpiredError:
             await _disable_autosync(
                 bot,
@@ -128,6 +150,16 @@ async def run_autosync_cycle(bot: Bot) -> None:
             logger.error(
                 f"Autosync failed for tg_id={profile.tg_id}: {e}", exc_info=True
             )
+            _sync_error_counts[profile.tg_id] = (
+                _sync_error_counts.get(profile.tg_id, 0) + 1
+            )
+            if _sync_error_counts[profile.tg_id] == OWNER_ALERT_ERROR_THRESHOLD:
+                await notify_owner(
+                    bot,
+                    f"❌ Autosync for {profile.coros_email} "
+                    f"(tg_id={profile.tg_id}) has failed "
+                    f"{OWNER_ALERT_ERROR_THRESHOLD} cycles in a row: {e}",
+                )
 
 
 async def autosync_loop(bot: Bot) -> None:
