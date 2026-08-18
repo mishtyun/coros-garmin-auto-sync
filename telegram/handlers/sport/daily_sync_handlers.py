@@ -25,13 +25,28 @@ daily_router = Router()
 DATE_FORMAT = "%Y-%m-%d"
 
 
+@daily_router.callback_query(F.data == SportActionCallbacks.SYNC_TODAY)
+async def sync_today_button_handler(
+    callback_query: types.CallbackQuery, user_ctx: UserContext
+):
+    logger.info("Syncing today's activities")
+    await callback_query.answer("Syncing today...")
+    today = datetime.now().strftime(DATE_FORMAT)
+    await process_sync_callback_button_after_datepicker(
+        callback_query, user_ctx, today, today
+    )
+
+
 @daily_router.callback_query(F.data == SportActionCallbacks.SYNC_DAILY)
 async def sync_all_daily_activities_button_handler(
     callback_query: types.CallbackQuery,
 ):
     logger.info("Preparing to sync all daily activities")
     await callback_query.answer()
-    keyboard = get_activities_dates_inline_keyboard(callback_data_prefix="sync")
+    # Today has its own quick button, so the date choice offers yesterday/calendar
+    keyboard = get_activities_dates_inline_keyboard(
+        callback_data_prefix="sync", include_today=False
+    )
     await callback_query.message.answer("When", reply_markup=keyboard)
     logger.info("Sent date selection keyboard for syncing all daily activities")
 
