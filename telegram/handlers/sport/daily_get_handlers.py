@@ -8,7 +8,10 @@ from aiogram.fsm.context import FSMContext
 from telegram.calendar.keyboards import generate_calendar
 from telegram.enums import DailyActivitiesDateTypes
 from telegram.handlers.sport.calendar_state import calendar_datepicker_user_data
-from telegram.keyboards import SportActionButtons, get_activities_dates_inline_keyboard
+from telegram.keyboards import (
+    SportActionCallbacks,
+    get_activities_dates_inline_keyboard,
+)
 from telegram.states.date_picker import CalendarDatePicker
 from telegram.utils import get_activities_reply
 from users.context import UserContext
@@ -22,11 +25,14 @@ daily_router = Router()
 DATE_FORMAT = "%Y-%m-%d"
 
 
-@daily_router.message(F.text == SportActionButtons.GET_DAILY)
-async def get_all_daily_activities_button_handler(message: types.Message):
+@daily_router.callback_query(F.data == SportActionCallbacks.GET_DAILY)
+async def get_all_daily_activities_button_handler(
+    callback_query: types.CallbackQuery,
+):
     logger.info("Preparing to get all daily activities")
+    await callback_query.answer()
     keyboard = get_activities_dates_inline_keyboard(callback_data_prefix="get")
-    await message.reply("When", reply_markup=keyboard)
+    await callback_query.message.answer("When", reply_markup=keyboard)
     logger.info("Sent date selection keyboard for getting all daily activities")
 
 

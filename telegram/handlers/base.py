@@ -28,7 +28,9 @@ HELP_TEXT = (
 @router.message(Command("start"))
 @router.message(Command("help"))
 async def help_cmd(message: types.Message):
-    await message.answer(HELP_TEXT)
+    # ReplyKeyboardRemove clears the legacy /sport reply keyboard
+    # still pinned for users who used the bot before the inline menu
+    await message.answer(HELP_TEXT, reply_markup=types.ReplyKeyboardRemove())
 
 
 @router.message()

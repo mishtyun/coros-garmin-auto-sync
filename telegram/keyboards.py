@@ -4,7 +4,8 @@ from telegram.enums import DailyActivitiesDateTypes
 
 __all__ = [
     "SportActionButtons",
-    "get_sport_action_keyboard",
+    "SportActionCallbacks",
+    "get_sport_action_inline_keyboard",
     "get_activities_dates_inline_keyboard",
 ]
 
@@ -16,23 +17,38 @@ class SportActionButtons:
     GET_DAILY = "📥 Get daily"
 
 
-def get_sport_action_keyboard() -> types.ReplyKeyboardMarkup:
+class SportActionCallbacks:
+    DOWNLOAD_LATEST = "sport:download_latest"
+    SYNC_LATEST = "sport:sync_latest"
+    SYNC_DAILY = "sport:sync_daily"
+    GET_DAILY = "sport:get_daily"
+
+
+def get_sport_action_inline_keyboard() -> types.InlineKeyboardMarkup:
     kb = [
         [
-            types.KeyboardButton(text=SportActionButtons.DOWNLOAD_LATEST),
-            types.KeyboardButton(text=SportActionButtons.SYNC_LATEST),
+            types.InlineKeyboardButton(
+                text=SportActionButtons.DOWNLOAD_LATEST,
+                callback_data=SportActionCallbacks.DOWNLOAD_LATEST,
+            ),
+            types.InlineKeyboardButton(
+                text=SportActionButtons.SYNC_LATEST,
+                callback_data=SportActionCallbacks.SYNC_LATEST,
+            ),
         ],
         [
-            types.KeyboardButton(text=SportActionButtons.SYNC_DAILY),
-            types.KeyboardButton(text=SportActionButtons.GET_DAILY),
+            types.InlineKeyboardButton(
+                text=SportActionButtons.SYNC_DAILY,
+                callback_data=SportActionCallbacks.SYNC_DAILY,
+            ),
+            types.InlineKeyboardButton(
+                text=SportActionButtons.GET_DAILY,
+                callback_data=SportActionCallbacks.GET_DAILY,
+            ),
         ],
     ]
 
-    keyboard = types.ReplyKeyboardMarkup(
-        keyboard=kb,
-        resize_keyboard=True,
-    )
-    return keyboard
+    return types.InlineKeyboardMarkup(inline_keyboard=kb)
 
 
 def get_activities_dates_inline_keyboard(
