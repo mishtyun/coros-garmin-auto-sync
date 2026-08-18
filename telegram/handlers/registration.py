@@ -3,7 +3,7 @@ import hashlib
 import logging
 from datetime import datetime, timezone
 
-from aiogram import Router, types
+from aiogram import F, Router, types
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 
@@ -73,25 +73,65 @@ async def settings_cmd(message: types.Message):
     )
 
 
+def get_autosync_mode_text(profile: UserProfile) -> str:
+    if profile.autosync and profile.autosync_quiet:
+        mode = "🔕 ON (quiet — no notifications)"
+    elif profile.autosync:
+        mode = "🔔 ON — you'll get a message for every synced workout"
+    else:
+        mode = "⏸ OFF"
+    return f"Autosync: {mode}"
+
+
+def get_autosync_keyboard() -> types.InlineKeyboardMarkup:
+    kb = [
+        [
+            types.InlineKeyboardButton(text="🔔 On", callback_data="autosync:on"),
+            types.InlineKeyboardButton(
+                text="🔕 On (quiet)", callback_data="autosync:quiet"
+            ),
+            types.InlineKeyboardButton(text="⏸ Off", callback_data="autosync:off"),
+        ]
+    ]
+    return types.InlineKeyboardMarkup(inline_keyboard=kb)
+
+
 @registration_router.message(Command("autosync"))
 async def autosync_cmd(message: types.Message):
-    repository = get_user_redis_repository()
-    profile = repository.get_profile(message.from_user.id)
+    profile = get_user_redis_repository().get_profile(message.from_user.id)
     if not profile:
         await message.answer("You're not registered yet — send /register")
         return
 
-    profile.autosync = not profile.autosync
+    await message.answer(
+        f"{get_autosync_mode_text(profile)}\n\n"
+        "New workouts appear in Garmin within ~10 minutes "
+        "after your watch syncs with the Coros app.",
+        reply_markup=get_autosync_keyboard(),
+    )
+
+
+@registration_router.callback_query(F.data.startswith("autosync:"))
+async def autosync_mode_callback(callback_query: types.CallbackQuery):
+    repository = get_user_redis_repository()
+    profile = repository.get_profile(callback_query.from_user.id)
+    if not profile:
+        await callback_query.answer("You're not registered yet — send /register")
+        return
+
+    mode = callback_query.data.split(":", 1)[1]
+    profile.autosync = mode in ("on", "quiet")
+    profile.autosync_quiet = mode == "quiet"
     repository.save_profile(profile)
 
-    if profile.autosync:
-        await message.answer(
-            "🔄 Autosync is ON — new workouts will appear in Garmin within "
-            "~10 minutes after your watch syncs with the Coros app.\n\n"
-            "Send /autosync again to turn it off."
+    try:
+        await callback_query.message.edit_text(
+            get_autosync_mode_text(profile), reply_markup=get_autosync_keyboard()
         )
-    else:
-        await message.answer("⏸ Autosync is OFF")
+    except Exception:
+        # same mode pressed twice -> "message is not modified", nothing to update
+        pass
+    await callback_query.answer("Saved")
 
 
 @registration_router.message(Command("unlink"))

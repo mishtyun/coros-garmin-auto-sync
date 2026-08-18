@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from aiogram import Bot
 
@@ -86,17 +86,22 @@ async def _sync_user(bot: Bot, profile: UserProfile) -> None:
             synced_links.append(link)
 
     coros_repository.add_latest_activity_data(
-        coros_config.email, latest_activity.model_dump()
+        coros_config.email,
+        {
+            **latest_activity.model_dump(),
+            "synced_at": datetime.now(timezone.utc).isoformat(),
+        },
     )
 
     if synced_links:
-        links_text = "\n".join(synced_links)
-        await bot.send_message(
-            profile.tg_id, f"✅ Auto-synced to Garmin:\n{links_text}"
-        )
         logger.info(
             f"Auto-synced {len(synced_links)} activities for tg_id={profile.tg_id}"
         )
+        if not profile.autosync_quiet:
+            links_text = "\n".join(synced_links)
+            await bot.send_message(
+                profile.tg_id, f"✅ Auto-synced to Garmin:\n{links_text}"
+            )
 
 
 async def run_autosync_cycle(bot: Bot) -> None:

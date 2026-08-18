@@ -10,3 +10,4 @@ class UserProfile(BaseModel):
     garmin_email: str
     created_at: str
     autosync: bool = False
+    autosync_quiet: bool = False
