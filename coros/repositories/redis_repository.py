@@ -6,14 +6,25 @@ __all__ = ["CorosRedisRepository", "get_coros_redis_repository"]
 
 
 class CorosRedisRepository(RedisRepository):
-    def add_access_token(self, key: str, access_token: str) -> bool:
-        return self.set(key, access_token, set_ex_time=True)
+    @staticmethod
+    def token_key(email: str) -> str:
+        return f"coros:access_token:{email}"
 
-    def add_latest_activity_data(self, activity_data: dict) -> bool:
-        return self.set("latest_activity", json.dumps(activity_data))
+    @staticmethod
+    def latest_activity_key(email: str) -> str:
+        return f"coros:latest_activity:{email}"
 
-    def get_latest_activity_data(self) -> dict | None:
-        data_key = "latest_activity"
+    def get_access_token(self, email: str) -> str | None:
+        return self.get(self.token_key(email))
+
+    def add_access_token(self, email: str, access_token: str) -> bool:
+        return self.set(self.token_key(email), access_token, set_ex_time=True)
+
+    def add_latest_activity_data(self, email: str, activity_data: dict) -> bool:
+        return self.set(self.latest_activity_key(email), json.dumps(activity_data))
+
+    def get_latest_activity_data(self, email: str) -> dict | None:
+        data_key = self.latest_activity_key(email)
 
         activity_data_bytes = self.redis.get(data_key)
         if not activity_data_bytes:

@@ -34,7 +34,9 @@ class AuthService(BaseService):
         return res_body
 
     def get_or_set_access_token(self) -> str | None:
-        if access_token := self.redis_repository.get(self.configuration.email):
+        if access_token := self.redis_repository.get_access_token(
+            self.configuration.email
+        ):
             logger.debug("[get_or_set_access_token] Return access_token from redis")
             return access_token
 

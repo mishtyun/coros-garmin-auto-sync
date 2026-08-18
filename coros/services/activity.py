@@ -45,7 +45,9 @@ class ActivityService(BaseService):
         headers = super().get_headers()
         headers.update(
             {
-                "accesstoken": self.redis_repository.get(self.configuration.email),
+                "accesstoken": self.redis_repository.get_access_token(
+                    self.configuration.email
+                ),
             }
         )
         return headers
@@ -80,7 +82,9 @@ class ActivityService(BaseService):
         activity_model = ActivityShortSchema.model_validate(activity_data)
 
         if save_response:
-            self.redis_repository.add_latest_activity_data(activity_model.model_dump())
+            self.redis_repository.add_latest_activity_data(
+                self.configuration.email, activity_model.model_dump()
+            )
 
         return activity_model
 
