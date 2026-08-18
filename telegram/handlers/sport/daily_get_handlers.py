@@ -3,11 +3,11 @@ import logging
 from datetime import datetime, timedelta
 
 from aiogram import F, Router, types
-from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 
 from telegram.calendar.keyboards import generate_calendar
 from telegram.enums import DailyActivitiesDateTypes
+from telegram.handlers.sport.calendar_state import calendar_datepicker_user_data
 from telegram.keyboards import SportActionButtons, get_activities_dates_inline_keyboard
 from telegram.states.date_picker import CalendarDatePicker
 from telegram.utils import get_activities_reply
@@ -15,12 +15,11 @@ from users.context import UserContext
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["daily_router"]
+__all__ = ["daily_router", "process_get_callback_button_after_datepicker"]
 
 daily_router = Router()
 
-
-calendar_datepicker_user_data = {}
+DATE_FORMAT = "%Y-%m-%d"
 
 
 @daily_router.message(F.text == SportActionButtons.GET_DAILY)
@@ -45,6 +44,7 @@ async def process_get__date_from_calendar(
 
     markup = await generate_calendar(now.year, now.month)
     await callback_query.message.answer("Выберите дату:", reply_markup=markup)
+    await state.update_data(action="get")
     await state.set_state(CalendarDatePicker.choosing_date)
 
 
@@ -55,13 +55,12 @@ async def process_get_callback_button(
     logger.info(f"Processing get callback: {callback_query.data}")
     choice = callback_query.data
 
-    date_format = "%Y-%m-%d"
     start_date = end_date = None
 
     if choice.endswith(DailyActivitiesDateTypes.yesterday.value):
-        start_date = end_date = (datetime.now() - timedelta(1)).strftime(date_format)
+        start_date = end_date = (datetime.now() - timedelta(1)).strftime(DATE_FORMAT)
     elif choice.endswith(DailyActivitiesDateTypes.today.value):
-        start_date = end_date = datetime.now().strftime(date_format)
+        start_date = end_date = datetime.now().strftime(DATE_FORMAT)
 
     await process_get_callback_button_after_datepicker(
         callback_query, user_ctx, start_date, end_date
@@ -85,109 +84,3 @@ async def process_get_callback_button_after_datepicker(
     logger.info(
         f"Activities retrieved and message sent for date range: {start_date} to {end_date}"
     )
-
-
-@daily_router.message(StateFilter(CalendarDatePicker.choosing_date))
-@daily_router.callback_query(F.data.startswith("day_"))
-async def process_day_selection(
-    callback: types.CallbackQuery, state: FSMContext, user_ctx: UserContext
-):
-    _, year, month, day = callback.data.split("_")
-    formatted_date = f"{year}-{month}-{day}"
-
-    await process_get_callback_button_after_datepicker(
-        callback, user_ctx, formatted_date, formatted_date
-    )
-    await state.clear()
-
-
-@daily_router.message(StateFilter(CalendarDatePicker.choosing_date))
-@daily_router.callback_query(F.data.startswith("prev_month_"))
-async def process_prev_month(callback: types.CallbackQuery):
-    """Обработчик перехода на предыдущий месяц"""
-    try:
-        _, year, month = callback.data.split("_")[
-            1:
-        ]  # Пропускаем первый элемент "prev"
-        year, month = int(year), int(month)
-
-        if month == 1:
-            month = 12
-            year -= 1
-        else:
-            month -= 1
-
-        calendar_datepicker_user_data[callback.from_user.id] = {
-            "year": year,
-            "month": month,
-        }
-        markup = await generate_calendar(year, month)
-        await callback.message.edit_reply_markup(reply_markup=markup)
-        await callback.answer()
-    except Exception as e:
-        logging.error(f"Error in process_prev_month: {e}")
-        await callback.answer(
-            "Произошла ошибка при переходе на предыдущий месяц", show_alert=True
-        )
-
-
-@daily_router.message(StateFilter(CalendarDatePicker.choosing_date))
-@daily_router.callback_query(F.data.startswith("next_month_"))
-async def process_next_month(callback: types.CallbackQuery):
-    """Обработчик перехода на следующий месяц"""
-    try:
-        # Парсим данные из callback (формат: "next_month_2023_11")
-        _, year, month = callback.data.split("_")[
-            1:
-        ]  # Пропускаем первый элемент "next"
-        year, month = int(year), int(month)
-
-        # Вычисляем следующий месяц
-        if month == 12:
-            month = 1
-            year += 1
-        else:
-            month += 1
-
-        calendar_datepicker_user_data[callback.from_user.id] = {
-            "year": year,
-            "month": month,
-        }
-        markup = await generate_calendar(year, month)
-
-        await callback.message.edit_reply_markup(reply_markup=markup)
-        await callback.answer()
-    except Exception as e:
-        logging.error(f"Error in process_next_month: {e}")
-        await callback.answer(
-            "Произошла ошибка при переходе на следующий месяц", show_alert=True
-        )
-
-
-@daily_router.message(StateFilter(CalendarDatePicker.choosing_date))
-@daily_router.callback_query(F.data == "current_month")
-async def process_current_month(callback: types.CallbackQuery):
-    """Обработчик кнопки 'Текущий месяц'"""
-    try:
-        now = datetime.now()
-        user_id = callback.from_user.id
-
-        if (
-            user_id in calendar_datepicker_user_data
-            and calendar_datepicker_user_data[user_id]["year"] == now.year
-            and calendar_datepicker_user_data[user_id]["month"] == now.month
-        ):
-            return
-
-        [user_id] = {"year": now.year, "month": now.month}
-        markup = await generate_calendar(now.year, now.month)
-
-        try:
-            await callback.message.edit_reply_markup(reply_markup=markup)
-            await callback.answer("Текущий месяц")
-        except Exception as e:
-            logging.error(f"Error editing message: {e}")
-            await callback.answer("Ошибка обновления календаря", show_alert=True)
-    except Exception as e:
-        logging.error(f"Error in process_today: {e}")
-        await callback.answer("Произошла ошибка", show_alert=True)
