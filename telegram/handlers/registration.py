@@ -8,6 +8,7 @@ from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 
 from coros.configuration import CorosConfiguration
+from coros.repositories.redis_repository import get_coros_redis_repository
 from coros.services import AuthService
 from garmin.client import GarminMFARequiredError, garmin_client_cache
 from garmin.client import login_with_credentials
@@ -70,6 +71,64 @@ async def settings_cmd(message: types.Message):
         f"Coros: {mask_email(profile.coros_email)}\n"
         f"Garmin: {mask_email(profile.garmin_email)}\n\n"
         f"Re-run /register to update credentials, /unlink to remove them."
+    )
+
+
+@registration_router.message(Command("status"))
+async def status_cmd(message: types.Message):
+    profile = get_user_redis_repository().get_profile(message.from_user.id)
+    if not profile:
+        await message.answer("You're not registered yet — send /register")
+        return
+
+    coros_repository = get_coros_redis_repository()
+
+    if coros_repository.get_access_token(profile.coros_email):
+        coros_status = "✅ session active"
+    else:
+        configuration = CorosConfiguration(
+            email=profile.coros_email, password_md5=profile.coros_password_md5
+        )
+        try:
+            access_token = await asyncio.to_thread(
+                AuthService(configuration).send_login_request, True
+            )
+        except Exception as e:
+            logger.error(f"Coros status check failed: {e}")
+            access_token = None
+        coros_status = (
+            "✅ login ok" if access_token else "❌ auth failed — update via /register"
+        )
+
+    oauth_data = get_user_redis_repository().get_garmin_oauth(message.from_user.id)
+    if not oauth_data:
+        garmin_status = "❌ not linked — run /register"
+    else:
+        expires_at = oauth_data.get("oauth2", {}).get("expires_at")
+        if expires_at and float(expires_at) > datetime.now(timezone.utc).timestamp():
+            valid_until = datetime.fromtimestamp(float(expires_at), tz=timezone.utc)
+            garmin_status = (
+                f"✅ session stored, valid until {valid_until:%Y-%m-%d %H:%M} UTC"
+            )
+        else:
+            garmin_status = "✅ session stored (will refresh on next sync)"
+
+    autosync_status = get_autosync_mode_text(profile).removeprefix("Autosync: ")
+
+    last_sync_data = coros_repository.get_latest_activity_data(profile.coros_email)
+    if last_sync_data and last_sync_data.get("synced_at"):
+        last_sync = f"{last_sync_data.get('name')} at {last_sync_data['synced_at']}"
+    elif last_sync_data:
+        last_sync = f"{last_sync_data.get('name')} (baseline)"
+    else:
+        last_sync = "—"
+
+    await message.answer(
+        f"📋 Status:\n"
+        f"Coros: {coros_status}\n"
+        f"Garmin: {garmin_status}\n"
+        f"Autosync: {autosync_status}\n"
+        f"Last sync: {last_sync}"
     )
 
 
