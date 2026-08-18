@@ -7,8 +7,6 @@ __all__ = [
     "BASE_DIR",
     "STATIC_ROOT",
     "redis_configuration",
-    "coros_configuration",
-    "CorosConfiguration",
     "RedisConfiguration",
 ]
 

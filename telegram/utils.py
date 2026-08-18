@@ -32,9 +32,7 @@ async def upload_and_get_url(
     garmin_api: Garmin, file_name: str, file: IO[bytes]
 ) -> tuple[bool, str] | tuple[bool, None]:
     try:
-        await asyncio.to_thread(
-            garmin_api.upload_activity_from_binary, file_name, file
-        )
+        await asyncio.to_thread(garmin_api.upload_activity_from_binary, file_name, file)
         uploaded = True
         await sleep(3)
     except GarthHTTPError as e:

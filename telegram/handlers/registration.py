@@ -108,9 +108,7 @@ async def process_coros_password(message: types.Message, state: FSMContext):
         access_token = None
 
     if not access_token:
-        await message.answer(
-            "Coros login failed — send the password again, or /cancel"
-        )
+        await message.answer("Coros login failed — send the password again, or /cancel")
         return
 
     await state.update_data(coros_password_md5=password_md5)

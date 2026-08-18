@@ -37,6 +37,8 @@ async def generate_calendar(year, month):
                 )
         markup.row(*buttons)
 
-    markup.row(InlineKeyboardButton(text="Текущий месяц", callback_data="current_month"))
+    markup.row(
+        InlineKeyboardButton(text="Текущий месяц", callback_data="current_month")
+    )
 
     return markup.as_markup()

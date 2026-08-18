@@ -2,7 +2,7 @@
 
 ## Project overview
 
-`coros-garmin-auto-sync` is a personal-automation Telegram bot that bridges two fitness platforms: it pulls activity data from a Coros sports watch (via Coros' internal Team EU API) and uploads/syncs those activities into Garmin Connect. The single user interacts entirely through Telegram commands and inline keyboards (e.g. "Sync latest", "Sync daily", date-picker calendar) — there is no web UI. It is a small, single-maintainer project run both locally (for development) and deployed to Render.com.
+`coros-garmin-auto-sync` is a personal-automation Telegram bot that bridges two fitness platforms: it pulls activity data from a Coros sports watch (via Coros' internal Team EU API) and uploads/syncs those activities into Garmin Connect. Users interact entirely through Telegram commands and inline keyboards (e.g. "Sync latest", "Sync daily", date-picker calendar) — there is no web UI. The bot is multi-user: each allow-listed Telegram user links their own Coros and Garmin accounts via a `/register` conversation, and all credentials/sessions are stored per user in Redis. It is a small, single-maintainer project run both locally (for development) and deployed to Render.com.
 
 ## Technology stack
 
@@ -21,9 +21,16 @@
 ## Data layer
 
 - **Redis is the only datastore.** There is no relational or document database, and no ORM.
-- Redis is used purely as a cache/session store, accessed through a small custom repository abstraction:
+- Redis stores per-user profiles, sessions, and caches, accessed through a small custom repository abstraction:
   - `core/repositories/base_repository.py` — generic `Repository` ABC (`get`/`set`) and `RedisRepository`
-  - `coros/repositories/redis_repository.py` — `CorosRedisRepository`, extending the base with domain-specific methods: `add_access_token` (caches the Coros bearer token, TTL = 30 min via `CorosConfiguration.access_token_expired_time`) and `add_latest_activity_data` / `get_latest_activity_data` (JSON-serialized last-synced-activity payload)
+  - `users/repository.py` — `UserRedisRepository`: user profiles and Garmin OAuth tokens
+  - `coros/repositories/redis_repository.py` — `CorosRedisRepository`: Coros access-token cache (TTL = 30 min) and latest-activity payloads
+- Redis key model (`tg_id` = Telegram user id):
+  - `user:{tg_id}:profile` — JSON: coros_email, coros_password_md5, garmin_email, created_at
+  - `user:{tg_id}:garmin_oauth` — JSON: garth OAuth1/OAuth2 tokens (long-lived Garmin session)
+  - `coros:access_token:{coros_email}` — Coros bearer token, 30-min TTL
+  - `coros:latest_activity:{coros_email}` — last-synced activity payload
+  - aiogram FSM state (registration/date-picker flows) via `RedisStorage`
 - No migrations, no schema versioning — Redis keys/values are managed ad hoc in code.
 - Configuration: `core/configuration.py`'s `RedisConfiguration` supports either discrete `REDIS_HOST`/`REDIS_PORT`/`REDIS_DB` env vars (local dev) or a single `REDIS_URL` (used by Render's managed Redis add-on in production).
 
@@ -68,10 +75,12 @@ These three are the complete set of external dependencies — confirmed, no othe
 
 ## Security posture
 
-This is a single-user personal project — there are no compliance frameworks, data residency requirements, or formal auth standards in scope. Baseline hygiene to maintain:
+This is a small multi-user personal project — there are no compliance frameworks, data residency requirements, or formal auth standards in scope. Baseline hygiene to maintain:
 
-- Secrets (`COROS_EMAIL`/`COROS_PASSWORD`, `GARMIN_CONNECT_EMAIL`/`GARMIN_CONNECT_PASSWORD`, `TELEGRAM_TOKEN`, Redis connection info) live only in `.env` locally (never committed — `example.env` is the template with blank values) and as Render environment variables in production. Never hardcode or log credential values.
-- Coros passwords are MD5-hashed client-side before transmission (`CorosConfiguration.hashed_password`) — this is a constraint of Coros' own API, not a chosen security control; do not treat MD5 as sufficient protection on its own and don't extend this pattern to any new integration.
-- The Coros access token and cached activity data are stored in Redis without additional encryption — acceptable given the personal/single-user threat model, but avoid caching anything more sensitive (e.g. raw passwords) in Redis.
-- The Telegram bot has no user allow-list/auth check visible in the handlers — anyone who knows the bot's username could message it. Since this is personal-use, that's currently accepted risk; flag it if the bot is ever made more widely accessible.
+- Bot-level secrets (`TELEGRAM_TOKEN`, Redis connection info) live only in `.env` locally (never committed — `example.env` is the template with blank values) and as Render environment variables in production. Never hardcode or log credential values.
+- **Access control:** only Telegram user ids listed in `TELEGRAM_ALLOWED_USER_IDS` can register or use sport commands. Enforced in `/register` and in `UserContextMiddleware` (`telegram/middlewares/user_context.py`).
+- **Per-user credentials live in Redis, not env vars.** For Coros only the MD5 hash of the password is stored (it's what the Coros API accepts — the hash is password-equivalent for this API, treat it as a secret). The Garmin password is never stored: it is used once during `/register` to obtain garth OAuth tokens, which are then persisted per user.
+- During registration, messages containing passwords are deleted from the chat immediately after processing; plaintext passwords never enter FSM storage or logs.
+- Data in Redis is stored unencrypted — a consciously accepted risk for this project's threat model (private Render Redis, allow-listed users). If that changes, add an encryption layer (e.g. Fernet) in `users/repository.py`.
+- Garmin accounts with MFA/2FA are not supported (registration fails with a clear message).
 - No regulatory/compliance constraints apply. Standard practice — don't commit secrets, don't log credentials or tokens, keep `.env` out of version control — is sufficient.
