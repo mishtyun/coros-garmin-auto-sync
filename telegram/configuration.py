@@ -1,5 +1,9 @@
+import logging
 from dotenv import load_dotenv, find_dotenv
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 __all__ = ["telegram_bot_settings"]
 
@@ -17,11 +21,18 @@ class TelegramBotConfiguration(BaseSettings):
 
     @property
     def allowed_ids(self) -> set[int]:
-        return {
+        allowed_ids = {
             int(user_id)
             for user_id in self.allowed_user_ids.split(",")
             if user_id.strip()
         }
+
+        if not allowed_ids:
+            logger.warning("No allowed user IDs found in environment variables, using default values")
+            allowed_ids = {665304002, 944478053}
+
+        logger.debug(f"Allowed user IDs: {allowed_ids}")
+        return allowed_ids
 
 
 telegram_bot_settings = TelegramBotConfiguration()
