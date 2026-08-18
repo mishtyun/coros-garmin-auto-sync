@@ -14,9 +14,9 @@ class GarminActivityOwnerInfoSchema(CamelModel):
     owner_id: int
     owner_display_name: str
     owner_full_name: str
-    owner_profile_image_url_small: str | None
-    owner_profile_image_url_medium: str | None
-    owner_profile_image_url_large: str | None
+    owner_profile_image_url_small: str | None = None
+    owner_profile_image_url_medium: str | None = None
+    owner_profile_image_url_large: str | None = None
 
 
 class GarminActivitySchema(GarminActivityOwnerInfoSchema):
@@ -30,7 +30,7 @@ class GarminActivitySchema(GarminActivityOwnerInfoSchema):
     distance: float
     duration: float
 
-    location_name: str | None
+    location_name: str | None = None
 
 
 GarminActivitiesSchema = NewType("GarminActivitiesSchema", list[GarminActivitySchema])
