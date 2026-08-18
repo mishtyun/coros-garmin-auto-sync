@@ -10,6 +10,15 @@ class TelegramBotConfiguration(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="telegram_", extra="ignore")
 
     token: str
+    allowed_user_ids: str = ""
+
+    @property
+    def allowed_ids(self) -> set[int]:
+        return {
+            int(user_id)
+            for user_id in self.allowed_user_ids.split(",")
+            if user_id.strip()
+        }
 
 
 telegram_bot_settings = TelegramBotConfiguration()
