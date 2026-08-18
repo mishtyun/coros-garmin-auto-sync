@@ -3,6 +3,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 
 from aiogram import Bot
+from aiogram.types import LinkPreviewOptions
 
 from coros.configuration import CorosConfiguration
 from coros.models import DateActivityFilter
@@ -79,11 +80,11 @@ async def _sync_user(bot: Bot, profile: UserProfile) -> None:
 
     synced_links = []
     for file_name, file_content in files:
-        uploaded, link = await upload_and_get_url(
+        uploaded, link, title = await upload_and_get_url(
             garmin_api, file_name=file_name, file=file_content
         )
         if uploaded and link:
-            synced_links.append(link)
+            synced_links.append(f'<a href="{link}">{title}</a>')
 
     coros_repository.add_latest_activity_data(
         coros_config.email,
@@ -100,7 +101,10 @@ async def _sync_user(bot: Bot, profile: UserProfile) -> None:
         if not profile.autosync_quiet:
             links_text = "\n".join(synced_links)
             await bot.send_message(
-                profile.tg_id, f"✅ Auto-synced to Garmin:\n{links_text}"
+                profile.tg_id,
+                f"✅ Auto-synced to Garmin:\n{links_text}",
+                parse_mode="HTML",
+                link_preview_options=LinkPreviewOptions(is_disabled=True),
             )
 
 

@@ -135,7 +135,11 @@ def build_activity_title(activity: dict) -> str:
 
 async def upload_and_get_url(
     garmin_api: Garmin, file_name: str, file: IO[bytes]
-) -> tuple[bool, str] | tuple[bool, None]:
+) -> tuple[bool, str, str] | tuple[bool, None, None]:
+    """Upload an activity file to Garmin.
+
+    Returns (uploaded, activity_url, activity_title); (False, None, None) on error.
+    """
     try:
         await asyncio.to_thread(garmin_api.upload_activity_from_binary, file_name, file)
         uploaded = True
@@ -156,15 +160,25 @@ async def upload_and_get_url(
 
     except Exception as e:
         logger.error(e)
-        return False, None
+        return False, None, None
 
     latest_activity = await asyncio.to_thread(garmin_api.get_last_activity)
     activity_id = latest_activity.get("activityId")
+    activity_title = latest_activity.get("activityName") or "Activity"
+
+    if uploaded:
+        activity_title = build_activity_title(latest_activity)
+        try:
+            await asyncio.to_thread(
+                garmin_api.set_activity_name, activity_id, activity_title
+            )
+        except Exception as e:
+            logger.warning(f"Can't rename activity {activity_id}: {e}")
 
     await asyncio.to_thread(
         garmin_api.change_activity_visibility, activity_id, "public"
     )
-    return uploaded, get_activity_url(activity_id)
+    return uploaded, get_activity_url(activity_id), activity_title
 
 
 async def sync_all_activity_by_dates_handler(
@@ -192,7 +206,7 @@ async def sync_all_activity_by_dates_handler(
     activity_links = []
 
     for file_name, file_content in files:
-        _, garmin_activity_link = await upload_and_get_url(
+        _, garmin_activity_link, _ = await upload_and_get_url(
             garmin_api, file_name=file_name, file=file_content
         )
         if not garmin_activity_link:
