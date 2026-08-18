@@ -11,3 +11,4 @@ class UserProfile(BaseModel):
     created_at: str
     autosync: bool = False
     autosync_quiet: bool = False
+    digest: bool = False

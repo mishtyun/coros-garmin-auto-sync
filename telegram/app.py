@@ -16,6 +16,7 @@ BOT_COMMANDS = [
     BotCommand(command="register", description="Link Coros and Garmin accounts"),
     BotCommand(command="sport", description="Open the sync menu"),
     BotCommand(command="autosync", description="Automatic sync settings"),
+    BotCommand(command="stats", description="Workout stats and digests"),
     BotCommand(command="status", description="Check Coros/Garmin sessions"),
     BotCommand(command="settings", description="Show linked accounts"),
     BotCommand(command="unlink", description="Remove accounts and data"),
@@ -26,6 +27,7 @@ BOT_COMMANDS = [
 
 async def app(bot: Bot, dispatcher: Dispatcher):
     dispatcher.include_router(handlers.registration_router)
+    dispatcher.include_router(handlers.stats_router)
     dispatcher.include_router(handlers.sport_router)
     dispatcher.include_router(handlers.base_router)
 

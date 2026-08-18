@@ -129,10 +129,48 @@ async def _sync_user(bot: Bot, profile: UserProfile) -> None:
             )
 
 
+async def _maybe_send_digest(bot: Bot, profile: UserProfile) -> None:
+    from telegram.handlers.stats import build_stats_text
+
+    now = datetime.now(timezone.utc)
+    if now.hour < telegram_bot_settings.digest_hour:
+        return
+
+    repository = get_user_redis_repository()
+    marker_key = repository.digest_marker_key(profile.tg_id)
+    today = now.date().isoformat()
+    if repository.get(marker_key) == today:
+        return
+    # mark first so a failing Garmin call can't spam retries every cycle
+    repository.set(marker_key, today)
+
+    if daily_text := await build_stats_text(profile, today, today, "Today"):
+        await bot.send_message(
+            profile.tg_id, f"🌙 Evening digest\n\n{daily_text}", parse_mode="HTML"
+        )
+
+    if now.weekday() == 6:  # Sunday -> weekly summary
+        monday = (now - timedelta(days=6)).date().isoformat()
+        if weekly_text := await build_stats_text(profile, monday, today, "This week"):
+            await bot.send_message(
+                profile.tg_id,
+                f"📬 Weekly summary\n\n{weekly_text}",
+                parse_mode="HTML",
+            )
+
+
 async def run_autosync_cycle(bot: Bot) -> None:
     profiles = await asyncio.to_thread(get_user_redis_repository().get_all_profiles)
 
     for profile in profiles:
+        if profile.digest:
+            try:
+                await _maybe_send_digest(bot, profile)
+            except Exception as e:
+                logger.error(
+                    f"Digest failed for tg_id={profile.tg_id}: {e}", exc_info=True
+                )
+
         if not profile.autosync:
             continue
 

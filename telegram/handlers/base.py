@@ -17,6 +17,7 @@ HELP_TEXT = (
     "/register — link or update your accounts\n"
     "/sport — open the sync menu\n"
     "/autosync — automatic sync settings\n"
+    "/stats — workout stats and digests\n"
     "/status — check your Coros/Garmin sessions\n"
     "/settings — show linked accounts\n"
     "/unlink — remove your accounts and data\n"

@@ -18,6 +18,10 @@ class UserRedisRepository(RedisRepository):
     def garmin_oauth_key(tg_id: int) -> str:
         return f"user:{tg_id}:garmin_oauth"
 
+    @staticmethod
+    def digest_marker_key(tg_id: int) -> str:
+        return f"user:{tg_id}:last_digest"
+
     def get_profile(self, tg_id: int) -> UserProfile | None:
         profile_data = self.get(self.profile_key(tg_id))
         if not profile_data:
@@ -63,7 +67,11 @@ class UserRedisRepository(RedisRepository):
     def delete_user(self, tg_id: int) -> None:
         from coros.repositories.redis_repository import CorosRedisRepository
 
-        keys_to_delete = [self.profile_key(tg_id), self.garmin_oauth_key(tg_id)]
+        keys_to_delete = [
+            self.profile_key(tg_id),
+            self.garmin_oauth_key(tg_id),
+            self.digest_marker_key(tg_id),
+        ]
 
         if profile := self.get_profile(tg_id):
             keys_to_delete += [
