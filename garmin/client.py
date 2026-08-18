@@ -49,8 +49,14 @@ def login_with_credentials(tg_id: int, email: str, password: str) -> Garmin:
     garmin = Garmin(
         _get_oauth_repository(tg_id), configuration, prompt_mfa=_raise_mfa_required
     )
-    garmin.login(use_creds=True)
+
+    # Garmin.login(use_creds=True) doesn't forward prompt_mfa to garth, and
+    # garth's default prompt_mfa blocks on stdin input(). Call garth directly
+    # so MFA accounts fail fast with GarminMFARequiredError instead.
+    garmin.garth.login(email, password, prompt_mfa=_raise_mfa_required)
     garmin.garth.dumps()
+    # resume path fills profile fields (display_name etc.) from stored tokens
+    garmin.login()
 
     return garmin
 
