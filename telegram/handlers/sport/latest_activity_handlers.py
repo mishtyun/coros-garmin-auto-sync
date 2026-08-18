@@ -1,13 +1,13 @@
+import asyncio
 import logging
 
 from aiogram import F, Router, types
 from aiogram.types import BufferedInputFile
 
-from coros import coros_configuration
 from coros.services import ActivityService, AuthService
-from telegram.handlers.sport.core import garmin_api
 from telegram.keyboards import SportActionButtons
 from telegram.utils import upload_and_get_url
+from users.context import UserContext
 
 logger = logging.getLogger(__name__)
 
@@ -17,14 +17,17 @@ latests_router = Router()
 
 
 @latests_router.message(F.text == SportActionButtons.DOWNLOAD_LATEST)
-async def download_latest_activity_button_handler(message: types.Message):
+async def download_latest_activity_button_handler(
+    message: types.Message, user_ctx: UserContext
+):
     logger.info("Downloading latest activity")
     try:
-        AuthService(coros_configuration).get_or_set_access_token()
+        coros_config = user_ctx.coros_config
+        await asyncio.to_thread(AuthService(coros_config).get_or_set_access_token)
 
-        activity_name, activity_content = ActivityService(
-            coros_configuration
-        ).get_latest_activity_bytes()
+        activity_name, activity_content = await asyncio.to_thread(
+            ActivityService(coros_config).get_latest_activity_bytes
+        )
 
         if not activity_name or not activity_content:
             logger.info("Latest activity not found")
@@ -47,14 +50,18 @@ async def download_latest_activity_button_handler(message: types.Message):
 
 
 @latests_router.message(F.text == SportActionButtons.SYNC_LATEST)
-async def sync_latest_activity_button_handler(message: types.Message):
+async def sync_latest_activity_button_handler(
+    message: types.Message, user_ctx: UserContext
+):
     logger.info("Syncing latest activity")
     try:
-        AuthService(coros_configuration).get_or_set_access_token()
-        activity_name, activity_content = ActivityService(
-            coros_configuration
-        ).get_latest_activity_bytes()
+        coros_config = user_ctx.coros_config
+        await asyncio.to_thread(AuthService(coros_config).get_or_set_access_token)
+        activity_name, activity_content = await asyncio.to_thread(
+            ActivityService(coros_config).get_latest_activity_bytes
+        )
 
+        garmin_api = await user_ctx.get_garmin()
         is_uploaded, garmin_activity_link = await upload_and_get_url(
             garmin_api, file_name=activity_name, file=activity_content
         )

@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 START_HANDLER_COMMAND = "/sport"
 
-__all__ = ["router", "garmin_api"]
+__all__ = ["router"]
 
 router = Router()
 

@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from datetime import datetime, timedelta
 
@@ -7,10 +8,10 @@ from aiogram.fsm.context import FSMContext
 
 from telegram.calendar.keyboards import generate_calendar
 from telegram.enums import DailyActivitiesDateTypes
-from telegram.handlers.sport.core import garmin_api
 from telegram.keyboards import SportActionButtons, get_activities_dates_inline_keyboard
 from telegram.states.date_picker import CalendarDatePicker
 from telegram.utils import get_activities_reply
+from users.context import UserContext
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +49,9 @@ async def process_get__date_from_calendar(
 
 
 @daily_router.callback_query(F.data.startswith("get"))
-async def process_get_callback_button(callback_query: types.CallbackQuery):
+async def process_get_callback_button(
+    callback_query: types.CallbackQuery, user_ctx: UserContext
+):
     logger.info(f"Processing get callback: {callback_query.data}")
     choice = callback_query.data
 
@@ -61,20 +64,21 @@ async def process_get_callback_button(callback_query: types.CallbackQuery):
         start_date = end_date = datetime.now().strftime(date_format)
 
     await process_get_callback_button_after_datepicker(
-        callback_query, start_date, end_date
+        callback_query, user_ctx, start_date, end_date
     )
 
 
 async def process_get_callback_button_after_datepicker(
-    callback_query: types.CallbackQuery, start_date, end_date
+    callback_query: types.CallbackQuery, user_ctx: UserContext, start_date, end_date
 ):
     if not start_date or not end_date:
         logger.warning("Invalid dates for get")
         return await callback_query.message.answer("Invalid dates")
 
     logger.info(f"Getting activities for date range: {start_date} to {end_date}")
-    activities = garmin_api.get_activities_by_date(
-        start_date=start_date, end_date=end_date
+    garmin_api = await user_ctx.get_garmin()
+    activities = await asyncio.to_thread(
+        garmin_api.get_activities_by_date, start_date=start_date, end_date=end_date
     )
     await get_activities_reply(callback_query, activities, start_date, end_date)
 
@@ -85,12 +89,14 @@ async def process_get_callback_button_after_datepicker(
 
 @daily_router.message(StateFilter(CalendarDatePicker.choosing_date))
 @daily_router.callback_query(F.data.startswith("day_"))
-async def process_day_selection(callback: types.CallbackQuery, state: FSMContext):
+async def process_day_selection(
+    callback: types.CallbackQuery, state: FSMContext, user_ctx: UserContext
+):
     _, year, month, day = callback.data.split("_")
     formatted_date = f"{year}-{month}-{day}"
 
     await process_get_callback_button_after_datepicker(
-        callback, formatted_date, formatted_date
+        callback, user_ctx, formatted_date, formatted_date
     )
     await state.clear()
 

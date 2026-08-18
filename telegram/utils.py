@@ -1,16 +1,16 @@
+import asyncio
 import logging
 from asyncio import sleep
 from typing import IO
 
 from aiogram import methods, types
-from garmin_connect.exceptions import GarthHTTPError
-from garmin_connect.service import Garmin
 from pydantic import TypeAdapter
 
-from coros.configuration import coros_configuration
+from coros.configuration import CorosConfiguration
 from coros.models import DateActivityFilter
 from coros.services import AuthService
 from coros.services.activity import ActivityService
+from garmin.client import Garmin, GarthHTTPError
 from telegram.schemas.activity import GarminActivitiesSchema
 
 logger = logging.getLogger(__name__)
@@ -32,7 +32,9 @@ async def upload_and_get_url(
     garmin_api: Garmin, file_name: str, file: IO[bytes]
 ) -> tuple[bool, str] | tuple[bool, None]:
     try:
-        garmin_api.upload_activity_from_binary(file_name, file)
+        await asyncio.to_thread(
+            garmin_api.upload_activity_from_binary, file_name, file
+        )
         uploaded = True
         await sleep(3)
     except GarthHTTPError as e:
@@ -53,28 +55,35 @@ async def upload_and_get_url(
         logger.error(e)
         return False, None
 
-    latest_activity = garmin_api.get_last_activity()
+    latest_activity = await asyncio.to_thread(garmin_api.get_last_activity)
     activity_id = latest_activity.get("activityId")
 
-    garmin_api.change_activity_visibility(activity_id, "public")
+    await asyncio.to_thread(
+        garmin_api.change_activity_visibility, activity_id, "public"
+    )
     return uploaded, get_activity_url(activity_id)
 
 
 async def sync_all_activity_by_dates_handler(
-    garmin_api: Garmin, start_date: str, end_date: str
+    garmin_api: Garmin,
+    coros_config: CorosConfiguration,
+    start_date: str,
+    end_date: str,
 ) -> list[str]:
     """
     Sync (download from Coros and upload into Garmin) available activities between specific dates
     :param garmin_api: Garmin-Api instance
+    :param coros_config: per-user Coros configuration
     :param start_date: String in the format YYYYMMDD
     :param end_date: String in the format YYYYMMDD
     :return: list of activity links
     """
 
-    AuthService(coros_configuration).get_or_set_access_token()
+    await asyncio.to_thread(AuthService(coros_config).get_or_set_access_token)
 
-    files = ActivityService(coros_configuration).get_daily_activities_bytes(
-        DateActivityFilter(start_date=start_date, end_date=end_date)
+    files = await asyncio.to_thread(
+        ActivityService(coros_config).get_daily_activities_bytes,
+        DateActivityFilter(start_date=start_date, end_date=end_date),
     )
 
     activity_links = []

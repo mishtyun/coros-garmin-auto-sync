@@ -1,12 +1,13 @@
+import asyncio
 import logging
 from datetime import datetime, timedelta
 
 from aiogram import F, Router, types
 
 from telegram.enums import DailyActivitiesDateTypes
-from telegram.handlers.sport.core import garmin_api
 from telegram.keyboards import SportActionButtons, get_activities_dates_inline_keyboard
 from telegram.utils import get_activities_reply
+from users.context import UserContext
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +25,9 @@ async def sync_all_daily_activities_button_handler(message: types.Message):
 
 
 @daily_router.callback_query(F.data.startswith("sync"))
-async def process_sync_callback_button(callback_query: types.CallbackQuery):
+async def process_sync_callback_button(
+    callback_query: types.CallbackQuery, user_ctx: UserContext
+):
     logger.info(f"Processing sync callback: {callback_query.data}")
     from telegram.utils import sync_all_activity_by_dates_handler
 
@@ -43,13 +46,16 @@ async def process_sync_callback_button(callback_query: types.CallbackQuery):
         return await callback_query.message.answer("Invalid dates")
 
     logger.info(f"Syncing activities for date range: {start_date} to {end_date}")
+    garmin_api = await user_ctx.get_garmin()
     await sync_all_activity_by_dates_handler(
         garmin_api,
+        user_ctx.coros_config,
         start_date.strftime(coros_date_format),
         end_date.strftime(coros_date_format),
     )
 
-    activities = garmin_api.get_activities_by_date(
+    activities = await asyncio.to_thread(
+        garmin_api.get_activities_by_date,
         start_date=start_date.strftime(date_format),
         end_date=end_date.strftime(date_format),
     )
