@@ -1,4 +1,5 @@
 import asyncio
+import html
 import logging
 from asyncio import sleep
 from typing import IO
@@ -18,14 +19,118 @@ logger = logging.getLogger(__name__)
 
 __all__ = [
     "get_activity_url",
+    "get_activity_emoji",
+    "format_distance",
+    "format_duration",
+    "build_activity_title",
     "upload_and_get_url",
     "get_activities_message_text",
+    "get_activities_reply",
     "sync_all_activity_by_dates_handler",
 ]
+
+ACTIVITY_TYPE_EMOJI = {
+    "running": "🏃",
+    "trail_running": "🏃",
+    "treadmill_running": "🏃",
+    "track_running": "🏃",
+    "cycling": "🚴",
+    "road_biking": "🚴",
+    "indoor_cycling": "🚴",
+    "virtual_ride": "🚴",
+    "mountain_biking": "🚵",
+    "gravel_cycling": "🚵",
+    "swimming": "🏊",
+    "lap_swimming": "🏊",
+    "open_water_swimming": "🏊",
+    "strength_training": "🏋️",
+    "indoor_cardio": "🏋️",
+    "walking": "🚶",
+    "hiking": "🥾",
+}
+DEFAULT_ACTIVITY_EMOJI = "🏅"
+
+ACTIVITY_TYPE_LABEL = {
+    "running": "Run",
+    "trail_running": "Trail Run",
+    "treadmill_running": "Treadmill Run",
+    "track_running": "Track Run",
+    "cycling": "Ride",
+    "road_biking": "Ride",
+    "indoor_cycling": "Indoor Ride",
+    "virtual_ride": "Virtual Ride",
+    "mountain_biking": "MTB Ride",
+    "gravel_cycling": "Gravel Ride",
+    "swimming": "Swim",
+    "lap_swimming": "Swim",
+    "open_water_swimming": "Open Water Swim",
+    "strength_training": "Strength",
+    "walking": "Walk",
+    "hiking": "Hike",
+}
 
 
 def get_activity_url(activity_id: str):
     return f"https://connect.garmin.com/modern/activity/{activity_id}"
+
+
+def get_activity_emoji(type_key: str) -> str:
+    return ACTIVITY_TYPE_EMOJI.get(type_key, DEFAULT_ACTIVITY_EMOJI)
+
+
+def get_activity_type_label(type_key: str) -> str:
+    if label := ACTIVITY_TYPE_LABEL.get(type_key):
+        return label
+    return type_key.replace("_", " ").title() if type_key else "Workout"
+
+
+def format_distance(meters: float | None) -> str | None:
+    if not meters:
+        return None
+    return f"{meters / 1000:.1f} km"
+
+
+def format_duration(seconds: float | None) -> str | None:
+    if not seconds:
+        return None
+    hours, remainder = divmod(int(seconds), 3600)
+    minutes, secs = divmod(remainder, 60)
+    if hours:
+        return f"{hours}:{minutes:02d}:{secs:02d}"
+    return f"{minutes}:{secs:02d}"
+
+
+def get_part_of_day(start_time_local: str) -> str:
+    # start_time_local format: "2026-08-08 07:30:00"
+    try:
+        hour = int(start_time_local[11:13])
+    except (ValueError, IndexError):
+        return ""
+
+    if hour < 5:
+        return "Night"
+    if hour < 12:
+        return "Morning"
+    if hour < 17:
+        return "Afternoon"
+    if hour < 22:
+        return "Evening"
+    return "Night"
+
+
+def build_activity_title(activity: dict) -> str:
+    """Build a pretty Garmin activity name like '🏃 Morning Run · 10.2 km'."""
+    type_key = (activity.get("activityType") or {}).get("typeKey", "")
+    emoji = get_activity_emoji(type_key)
+    label = get_activity_type_label(type_key)
+    part_of_day = get_part_of_day(activity.get("startTimeLocal") or "")
+
+    title = f"{emoji} {part_of_day} {label}".replace("  ", " ").strip()
+
+    if distance := format_distance(activity.get("distance")):
+        title += f" · {distance}"
+
+    return title
 
 
 async def upload_and_get_url(
@@ -99,12 +204,27 @@ async def sync_all_activity_by_dates_handler(
 
 
 def get_activities_message_text(activities: GarminActivitiesSchema) -> str:
-    message_to_send = ""
+    lines = []
     for activity in activities:
+        emoji = get_activity_emoji(activity.activity_type.type_key)
+        name = html.escape(activity.activity_name)
         activity_url = get_activity_url(activity.activity_id)
-        message_to_send += f"{activity.activity_name}\n{activity_url}\n"
 
-    return message_to_send
+        details = " · ".join(
+            part
+            for part in (
+                format_distance(activity.distance),
+                format_duration(activity.duration),
+            )
+            if part
+        )
+
+        line = f'{emoji} <a href="{activity_url}">{name}</a>'
+        if details:
+            line += f" — {details}"
+        lines.append(line)
+
+    return "\n".join(lines)
 
 
 def get_activities_reply(
@@ -116,12 +236,14 @@ def get_activities_reply(
     activities = TypeAdapter(GarminActivitiesSchema).validate_python(activities)
     message_text = get_activities_message_text(activities)
 
-    if message_text:
-        message_text = (
-            f"📊 Activities ({start_date}) -> ({end_date}):\n\n{message_text}"
-        )
-
     if not message_text:
         return callback_query.answer("No activities :(")
 
-    return callback_query.message.answer(message_text)
+    start, end = str(start_date)[:10], str(end_date)[:10]
+    period = start if start == end else f"{start} → {end}"
+
+    return callback_query.message.answer(
+        f"📊 <b>Activities · {period}</b>\n\n{message_text}",
+        parse_mode="HTML",
+        link_preview_options=types.LinkPreviewOptions(is_disabled=True),
+    )
