@@ -9,3 +9,4 @@ class UserProfile(BaseModel):
     coros_password_md5: str
     garmin_email: str
     created_at: str
+    autosync: bool = False

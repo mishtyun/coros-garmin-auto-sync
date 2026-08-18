@@ -11,6 +11,7 @@ class TelegramBotConfiguration(BaseSettings):
 
     token: str
     allowed_user_ids: str = ""
+    autosync_interval: int = 60 * 10  # seconds between autosync cycles
 
     @property
     def allowed_ids(self) -> set[int]:

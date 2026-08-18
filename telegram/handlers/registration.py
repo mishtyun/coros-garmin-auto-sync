@@ -73,6 +73,27 @@ async def settings_cmd(message: types.Message):
     )
 
 
+@registration_router.message(Command("autosync"))
+async def autosync_cmd(message: types.Message):
+    repository = get_user_redis_repository()
+    profile = repository.get_profile(message.from_user.id)
+    if not profile:
+        await message.answer("You're not registered yet — send /register")
+        return
+
+    profile.autosync = not profile.autosync
+    repository.save_profile(profile)
+
+    if profile.autosync:
+        await message.answer(
+            "🔄 Autosync is ON — new workouts will appear in Garmin within "
+            "~10 minutes after your watch syncs with the Coros app.\n\n"
+            "Send /autosync again to turn it off."
+        )
+    else:
+        await message.answer("⏸ Autosync is OFF")
+
+
 @registration_router.message(Command("unlink"))
 async def unlink_cmd(message: types.Message):
     tg_id = message.from_user.id

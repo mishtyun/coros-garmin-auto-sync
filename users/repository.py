@@ -32,6 +32,18 @@ class UserRedisRepository(RedisRepository):
     def save_profile(self, profile: UserProfile) -> bool:
         return self.set(self.profile_key(profile.tg_id), profile.model_dump_json())
 
+    def get_all_profiles(self) -> list[UserProfile]:
+        profiles = []
+        for key in self.redis.scan_iter(match="user:*:profile"):
+            profile_data = self.get(key.decode() if isinstance(key, bytes) else key)
+            if not profile_data:
+                continue
+            try:
+                profiles.append(UserProfile.model_validate_json(profile_data))
+            except ValueError:
+                logger.warning(f"Can't parse profile data for key={key}")
+        return profiles
+
     def get_garmin_oauth(self, tg_id: int) -> dict | None:
         oauth_data = self.get(self.garmin_oauth_key(tg_id))
         if not oauth_data:
