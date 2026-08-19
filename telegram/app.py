@@ -2,7 +2,7 @@ import asyncio
 
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.redis import RedisStorage
-from aiogram.types import BotCommand
+from aiogram.types import BotCommand, MenuButtonDefault, MenuButtonWebApp, WebAppInfo
 
 from core.configuration import redis_configuration
 from telegram import handlers
@@ -35,6 +35,17 @@ async def app(bot: Bot, dispatcher: Dispatcher):
     dispatcher.include_router(handlers.base_router)
 
     await bot.set_my_commands(BOT_COMMANDS)
+
+    if telegram_bot_settings.webapp_enabled and telegram_bot_settings.webapp_url:
+        await bot.set_chat_menu_button(
+            menu_button=MenuButtonWebApp(
+                text="Dashboard",
+                web_app=WebAppInfo(url=telegram_bot_settings.webapp_url),
+            )
+        )
+    else:
+        # reset in case the feature flag was turned off after being enabled
+        await bot.set_chat_menu_button(menu_button=MenuButtonDefault())
 
     web_runner = await start_web_server()
     autosync_task = asyncio.create_task(autosync_loop(bot))
