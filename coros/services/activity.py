@@ -5,7 +5,6 @@ import shutil
 from typing import Sequence
 
 from pydantic import TypeAdapter
-from urllib3 import HTTPResponse
 
 from core.configuration import STATIC_ROOT
 from coros.constants import API_URLS, ActivityFileType
@@ -56,9 +55,9 @@ class ActivityService(BaseService):
         self, date_filters: DateActivityFilter | None = None
     ) -> list[ActivityShortSchema]:
         activities_url = self.get_url(date_filters=date_filters)
-        res = self.http.request("GET", activities_url, headers=self.get_headers())
+        res_body = self.request_json("GET", activities_url)
 
-        activities_data = res.json().get("data", {}).get("dataList")
+        activities_data = res_body.get("data", {}).get("dataList")
         if not activities_data or not isinstance(activities_data, Sequence):
             return []
 
@@ -74,9 +73,9 @@ class ActivityService(BaseService):
         save_response: bool = False,
     ) -> None | ActivityShortSchema:
         latest_activity_url = self.get_url(date_filters=date_filters, size=1)
-        res = self.http.request("GET", latest_activity_url, headers=self.get_headers())
+        res_body = self.request_json("GET", latest_activity_url)
 
-        activity_data = res.json().get("data", {}).get("dataList")
+        activity_data = res_body.get("data", {}).get("dataList")
         if not activity_data or not isinstance(activity_data, Sequence):
             return None
 
@@ -108,13 +107,6 @@ class ActivityService(BaseService):
 
         return os.path.join(STATIC_ROOT, file_name)
 
-    @staticmethod
-    def _validate_response(response: HTTPResponse) -> dict:
-        if response.status != 200:
-            logger.info(response.reason)
-            return {}
-        return response.json()
-
     def download_activity(self, activity: ActivityShortSchema) -> str | None:
         file_path = self._get_activity_file_path(activity)
 
@@ -130,13 +122,9 @@ class ActivityService(BaseService):
             "file_type": ActivityFileType.FIT.value,
         }
 
-        file_to_download_response = self.http.request(
-            method="GET",
-            headers=self.get_headers(),
-            url=self.get_url(**query_params_to_download),
+        file_to_download_data = self.request_json(
+            "GET", self.get_url(**query_params_to_download)
         )
-
-        file_to_download_data = self._validate_response(file_to_download_response)
         activity_file_url = file_to_download_data.get("data", {}).get("fileUrl")
 
         if not activity_file_url:
@@ -159,13 +147,9 @@ class ActivityService(BaseService):
             "file_type": ActivityFileType.FIT.value,
         }
 
-        file_to_download_response = self.http.request(
-            method="GET",
-            headers=self.get_headers(),
-            url=self.get_url(**query_params_to_download),
+        file_to_download_data = self.request_json(
+            "GET", self.get_url(**query_params_to_download)
         )
-
-        file_to_download_data = self._validate_response(file_to_download_response)
         activity_file_url = file_to_download_data.get("data", {}).get("fileUrl")
 
         if not activity_file_url:

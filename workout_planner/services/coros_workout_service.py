@@ -2,7 +2,8 @@ import json
 import logging
 from datetime import date, timedelta
 
-from coros.services import AuthService, BaseService
+from coros.services import BaseService
+from coros.services.base import TOKEN_INVALID_RESULT
 
 from workout_planner.configuration import (
     WorkoutPlannerConfiguration,
@@ -19,9 +20,6 @@ __all__ = ["CorosWorkoutService", "CorosWorkoutError"]
 
 class CorosWorkoutError(Exception):
     pass
-
-
-TOKEN_INVALID_RESULT = "1019"
 
 
 class CorosWorkoutService(BaseService):
@@ -44,14 +42,6 @@ class CorosWorkoutService(BaseService):
             }
         )
         return headers
-
-    def _refresh_access_token(self) -> None:
-        access_token = AuthService(self.configuration).send_login_request(
-            return_token=True
-        )
-        if not access_token:
-            raise CorosWorkoutError("Coros re-login failed")
-        self.redis_repository.add_access_token(self.configuration.email, access_token)
 
     def _request(
         self, method: str, url: str, payload: dict | None = None, retry: bool = True
@@ -78,7 +68,7 @@ class CorosWorkoutService(BaseService):
             # 30-min Redis TTL expires (e.g. logging into Training Hub web
             # issues a new token) — re-login once and retry.
             logger.info("Coros access token invalid, re-authenticating")
-            self._refresh_access_token()
+            self.refresh_access_token()
             return self._request(method, url, payload, retry=False)
         if result_code is not None and result_code != "0000":
             raise CorosWorkoutError(
