@@ -7,7 +7,7 @@ services/mapper.py converts this into the reverse-engineered payloads.
 from datetime import date
 from typing import Annotated, Literal, Union
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 __all__ = [
     "IntensityTarget",
@@ -28,9 +28,17 @@ class IntensityTarget(BaseModel):
 
 
 class DurationTarget(BaseModel):
-    # time: seconds; distance: meters
-    type: Literal["time", "distance"]
-    value: float = Field(gt=0)
+    # time: seconds; distance: meters; open: no target, ended by lap button
+    type: Literal["time", "distance", "open"]
+    value: float | None = None
+
+    @model_validator(mode="after")
+    def _validate_value(self) -> "DurationTarget":
+        if self.type == "open":
+            self.value = None
+        elif self.value is None or self.value <= 0:
+            raise ValueError(f"value must be > 0 for type '{self.type}'")
+        return self
 
 
 class SimpleStep(BaseModel):

@@ -29,6 +29,8 @@ PLAN_STATE_KEY = "workout_plan_json"
 
 
 def _format_duration(duration) -> str:
+    if duration.type == "open":
+        return "open (lap)"
     if duration.type == "distance":
         if duration.value >= 1000:
             return f"{duration.value / 1000:g} km"

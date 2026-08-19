@@ -29,9 +29,13 @@ Respond with ONLY a JSON object matching this schema (no markdown, no prose):
 {schema}
 
 Rules:
-- durations: type "time" -> value in seconds; type "distance" -> value in meters.
+- durations: type "time" -> value in seconds; type "distance" -> value in
+  meters; type "open" (value omitted) -> no target, the runner ends the step
+  manually ("open time", "no distance or time", "by feel", "открытое время").
 - intensity: type "hr" -> value/value_extend in bpm; type "pace" -> seconds per
   km (e.g. 5:30/km -> 330). Omit intensity or use type "none" when unspecified.
+- Every segment in the description MUST become its own step, in the same
+  order. Never merge or drop segments — two warm-ups in a row are valid.
 - "4x400m" style repeats -> one interval step with sets=4.
 - rest_duration is the recovery inside each repetition; rest_between_sets_sec
   is an extra pause between sets (0 unless explicitly asked).
