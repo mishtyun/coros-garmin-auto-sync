@@ -4,7 +4,11 @@ from coros.services.base import BaseService
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["AuthService"]
+__all__ = ["AuthService", "CorosAuthError"]
+
+
+class CorosAuthError(Exception):
+    """Raised when a Coros access token can't be obtained."""
 
 
 class AuthService(BaseService):

@@ -8,6 +8,7 @@ from aiogram.filters import Command
 from coros.configuration import CorosConfiguration
 from coros.models import DateActivityFilter
 from coros.services import ActivityService, AuthService
+from coros.services.auth import CorosAuthError
 from telegram.utils import (
     format_distance,
     format_duration,
@@ -19,7 +20,7 @@ from users.repository import get_user_redis_repository
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["stats_router", "build_stats_text"]
+__all__ = ["stats_router", "build_stats_data", "build_stats_text"]
 
 stats_router = Router()
 
@@ -51,9 +52,9 @@ def format_period(start_date: str, end_date: str) -> str:
     return start if start == end else f"{start} → {end}"
 
 
-async def build_stats_text(
-    profile: UserProfile, start_date: str, end_date: str, label: str
-) -> str | None:
+async def build_stats_data(
+    profile: UserProfile, start_date: str, end_date: str
+) -> dict | None:
     """Aggregate Coros activities for the period; None when there are none.
 
     Coros (not Garmin) is the source of truth here: stats include workouts
@@ -67,7 +68,7 @@ async def build_stats_text(
         AuthService(coros_config).get_or_set_access_token
     )
     if not access_token:
-        raise RuntimeError(f"Coros auth failed for {profile.coros_email}")
+        raise CorosAuthError(f"Coros auth failed for {profile.coros_email}")
 
     date_filters = DateActivityFilter(
         start_date=start_date.replace("-", ""), end_date=end_date.replace("-", "")
@@ -77,19 +78,6 @@ async def build_stats_text(
     )
     if not activities:
         return None
-
-    total_distance = sum(activity.distance or 0 for activity in activities)
-    total_duration = sum(activity.duration or 0 for activity in activities)
-
-    totals = " · ".join(
-        part
-        for part in (
-            f"{len(activities)} workouts",
-            format_distance(total_distance),
-            format_duration(total_duration),
-        )
-        if part
-    )
 
     # group by human label so e.g. outdoor and helmet rides merge into one "Ride" line
     by_type: dict[tuple[str, str], dict] = {}
@@ -102,16 +90,52 @@ async def build_stats_text(
         stats["distance"] += activity.distance or 0
         stats["duration"] += activity.duration or 0
 
+    return {
+        "totals": {
+            "count": len(activities),
+            "distance_m": sum(activity.distance or 0 for activity in activities),
+            "duration_s": sum(activity.duration or 0 for activity in activities),
+        },
+        "by_type": [
+            {
+                "emoji": emoji,
+                "label": type_label,
+                "count": stats["count"],
+                "distance_m": stats["distance"],
+                "duration_s": stats["duration"],
+            }
+            for (emoji, type_label), stats in sorted(
+                by_type.items(), key=lambda item: item[1]["duration"], reverse=True
+            )
+        ],
+    }
+
+
+async def build_stats_text(
+    profile: UserProfile, start_date: str, end_date: str, label: str
+) -> str | None:
+    data = await build_stats_data(profile, start_date, end_date)
+    if data is None:
+        return None
+
+    totals = " · ".join(
+        part
+        for part in (
+            f"{data['totals']['count']} workouts",
+            format_distance(data["totals"]["distance_m"]),
+            format_duration(data["totals"]["duration_s"]),
+        )
+        if part
+    )
+
     type_lines = []
-    for (emoji, type_label), stats in sorted(
-        by_type.items(), key=lambda item: item[1]["duration"], reverse=True
-    ):
-        line = f"{emoji} {type_label} — {stats['count']}"
+    for group in data["by_type"]:
+        line = f"{group['emoji']} {group['label']} — {group['count']}"
         details = " · ".join(
             part
             for part in (
-                format_distance(stats["distance"]),
-                format_duration(stats["duration"]),
+                format_distance(group["distance_m"]),
+                format_duration(group["duration_s"]),
             )
             if part
         )
