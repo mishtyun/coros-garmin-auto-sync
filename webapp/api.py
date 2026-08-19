@@ -151,7 +151,77 @@ async def get_activities(request: web.Request) -> web.Response:
     return web.json_response({"activities": items})
 
 
+@api_errors
+async def post_sync_today(request: web.Request) -> web.Response:
+    from telegram.utils import local_now, sync_activities_by_dates
+
+    user_ctx = request["user_ctx"]
+    garmin_api = await user_ctx.get_garmin()
+
+    today = local_now().strftime("%Y%m%d")
+    results = await sync_activities_by_dates(
+        garmin_api, user_ctx.coros_config, today, today
+    )
+
+    synced = [
+        {"title": title, "url": url} for uploaded, url, title in results if uploaded
+    ]
+    already_synced = sum(1 for uploaded, url, _ in results if url and not uploaded)
+
+    return web.json_response({"synced": synced, "already_synced": already_synced})
+
+
+@api_errors
+async def post_sync_latest(request: web.Request) -> web.Response:
+    from telegram.utils import sync_latest_activity
+
+    user_ctx = request["user_ctx"]
+    garmin_api = await user_ctx.get_garmin()
+
+    result = await sync_latest_activity(garmin_api, user_ctx.coros_config)
+    if result is None:
+        return web.json_response({"latest": None})
+
+    uploaded, url, title = result
+    return web.json_response(
+        {"latest": {"title": title, "url": url, "uploaded": uploaded}}
+    )
+
+
+SETTINGS_KEYS = {"autosync", "autosync_quiet", "digest"}
+
+
+@api_errors
+async def post_settings(request: web.Request) -> web.Response:
+    from users.repository import get_user_redis_repository
+
+    try:
+        body = await request.json()
+    except Exception:
+        return json_error(400, "bad_request", "Invalid JSON body")
+
+    if not isinstance(body, dict) or not body:
+        return json_error(400, "bad_request", "Body must be a non-empty object")
+
+    unknown = set(body) - SETTINGS_KEYS
+    if unknown:
+        return json_error(400, "bad_request", f"Unknown keys: {sorted(unknown)}")
+    if not all(isinstance(value, bool) for value in body.values()):
+        return json_error(400, "bad_request", "Values must be booleans")
+
+    repository = get_user_redis_repository()
+    profile = repository.get_profile(request["user_ctx"].tg_id)
+    for key, value in body.items():
+        setattr(profile, key, value)
+    repository.save_profile(profile)
+
+    return web.json_response(me_payload(profile))
+
+
 def register_api_routes(app: web.Application) -> None:
     app.router.add_get("/api/me", get_me)
     app.router.add_get("/api/stats", get_stats)
     app.router.add_get("/api/activities", get_activities)
+    app.router.add_post("/api/sync/today", post_sync_today)
+    app.router.add_post("/api/sync/latest", post_sync_latest)
+    app.router.add_post("/api/settings", post_settings)

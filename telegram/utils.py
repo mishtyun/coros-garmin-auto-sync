@@ -27,7 +27,9 @@ __all__ = [
     "upload_and_get_url",
     "get_activities_message_text",
     "get_activities_reply",
+    "sync_activities_by_dates",
     "sync_all_activity_by_dates_handler",
+    "sync_latest_activity",
 ]
 
 ACTIVITY_TYPE_EMOJI = {
@@ -238,19 +240,19 @@ async def upload_and_get_url(
     return uploaded, get_activity_url(activity_id), activity_title
 
 
-async def sync_all_activity_by_dates_handler(
+async def sync_activities_by_dates(
     garmin_api: Garmin,
     coros_config: CorosConfiguration,
     start_date: str,
     end_date: str,
-) -> list[str]:
+) -> list[tuple[bool, str | None, str | None]]:
     """
     Sync (download from Coros and upload into Garmin) available activities between specific dates
     :param garmin_api: Garmin-Api instance
     :param coros_config: per-user Coros configuration
     :param start_date: String in the format YYYYMMDD
     :param end_date: String in the format YYYYMMDD
-    :return: list of activity links
+    :return: list of (uploaded, activity_url, activity_title) per activity
     """
 
     await asyncio.to_thread(AuthService(coros_config).get_or_set_access_token)
@@ -260,18 +262,49 @@ async def sync_all_activity_by_dates_handler(
         DateActivityFilter(start_date=start_date, end_date=end_date),
     )
 
-    activity_links = []
-
+    results = []
     for file_name, file_content in files:
-        _, garmin_activity_link, _ = await upload_and_get_url(
-            garmin_api, file_name=file_name, file=file_content
+        results.append(
+            await upload_and_get_url(garmin_api, file_name=file_name, file=file_content)
         )
+    return results
+
+
+async def sync_all_activity_by_dates_handler(
+    garmin_api: Garmin,
+    coros_config: CorosConfiguration,
+    start_date: str,
+    end_date: str,
+) -> list[str]:
+    results = await sync_activities_by_dates(
+        garmin_api, coros_config, start_date, end_date
+    )
+
+    activity_links = []
+    for _, garmin_activity_link, _ in results:
         if not garmin_activity_link:
             activity_links.append("One of the activity was synced already :)")
             continue
         activity_links.append(garmin_activity_link)
 
     return activity_links
+
+
+async def sync_latest_activity(
+    garmin_api: Garmin, coros_config: CorosConfiguration
+) -> tuple[bool, str | None, str | None] | None:
+    """Sync the latest Coros activity to Garmin; None when Coros has none."""
+    await asyncio.to_thread(AuthService(coros_config).get_or_set_access_token)
+
+    activity_name, activity_content = await asyncio.to_thread(
+        ActivityService(coros_config).get_latest_activity_bytes
+    )
+    if not activity_name or not activity_content:
+        return None
+
+    return await upload_and_get_url(
+        garmin_api, file_name=activity_name, file=activity_content
+    )
 
 
 def get_activities_message_text(activities: GarminActivitiesSchema) -> str:
