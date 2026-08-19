@@ -8,6 +8,7 @@ from core.configuration import redis_configuration
 from telegram import handlers
 from telegram.autosync import autosync_loop
 from telegram.configuration import telegram_bot_settings
+from webapp import start_web_server
 
 __all__ = ["run_bot"]
 
@@ -35,11 +36,13 @@ async def app(bot: Bot, dispatcher: Dispatcher):
 
     await bot.set_my_commands(BOT_COMMANDS)
 
+    web_runner = await start_web_server()
     autosync_task = asyncio.create_task(autosync_loop(bot))
     try:
         await dispatcher.start_polling(bot)
     finally:
         autosync_task.cancel()
+        await web_runner.cleanup()
 
 
 def run_bot():
