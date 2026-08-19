@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>Coros → Garmin</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="stylesheet" href="/webapp/styles.css">
+</head>
+<body>
+  <nav class="tabs">
+    <button class="tab active" data-tab="dashboard">Dashboard</button>
+    <button class="tab" data-tab="settings">Settings</button>
+  </nav>
+
+  <main id="tab-dashboard" class="tab-panel">
+    <div class="segmented" id="period-switch">
+      <button class="seg active" data-period="week">This week</button>
+      <button class="seg" data-period="last_week">Last week</button>
+      <button class="seg" data-period="month">This month</button>
+    </div>
+
+    <section class="card" id="stats-card">
+      <div class="placeholder">Loading…</div>
+    </section>
+
+    <section class="card">
+      <h3 class="card-title">Last 7 days</h3>
+      <div id="activities-list">
+        <div class="placeholder">Loading…</div>
+      </div>
+    </section>
+
+    <div class="actions">
+      <button class="btn" id="btn-sync-today">🔄 Sync today</button>
+      <button class="btn btn-secondary" id="btn-sync-latest">🔃 Sync latest</button>
+    </div>
+    <div id="sync-result"></div>
+  </main>
+
+  <main id="tab-settings" class="tab-panel hidden">
+    <section class="card" id="settings-card">
+      <div class="placeholder">Loading…</div>
+    </section>
+    <section class="card" id="account-card"></section>
+  </main>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="/webapp/app.js"></script>
+</body>
+</html>

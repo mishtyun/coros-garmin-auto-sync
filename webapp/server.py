@@ -1,5 +1,6 @@
 import logging
 import os
+from pathlib import Path
 
 from aiohttp import web
 
@@ -7,10 +8,24 @@ logger = logging.getLogger(__name__)
 
 __all__ = ["create_web_app", "start_web_server"]
 
+# mini app frontend lives inside the package — NOT in the repo-level static/
+# dir, which the sync flow uses as a scratch area for users' activity files
+WEBAPP_STATIC = Path(__file__).parent / "static"
+
 
 async def health(request: web.Request) -> web.Response:
     # keep-alive endpoint: Render port detection + UptimeRobot pings
     return web.Response(text="OK")
+
+
+async def webapp_index(request: web.Request) -> web.FileResponse:
+    return web.FileResponse(WEBAPP_STATIC / "index.html")
+
+
+async def no_store_on_webapp(request: web.Request, response: web.StreamResponse):
+    # no-build-step frontend: never let Telegram's webview cache stale JS
+    if request.path.startswith("/webapp"):
+        response.headers["Cache-Control"] = "no-store"
 
 
 def create_web_app() -> web.Application:
@@ -30,6 +45,9 @@ def create_web_app() -> web.Application:
 
     if webapp_enabled:
         register_api_routes(app)
+        app.router.add_get("/webapp", webapp_index)
+        app.router.add_static("/webapp/", WEBAPP_STATIC, show_index=False)
+        app.on_response_prepare.append(no_store_on_webapp)
         logger.info("Mini app routes enabled")
 
     return app
