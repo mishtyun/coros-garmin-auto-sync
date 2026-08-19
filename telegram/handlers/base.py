@@ -16,6 +16,7 @@ HELP_TEXT = (
     "All commands:\n"
     "/register — link or update your accounts\n"
     "/sport — open the sync menu\n"
+    "/plan_workout — plan a workout from text (AI)\n"
     "/autosync — automatic sync settings\n"
     "/stats — workout stats and digests\n"
     "/status — check your Coros/Garmin sessions\n"
