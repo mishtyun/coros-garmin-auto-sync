@@ -42,10 +42,13 @@
 - Конверт ответа Coros — `{"result": "0000", "message": "OK", "data": {...}}` — подтверждён.
 - Group-узел в сохранённой тренировке: `targetType/targetValue` = сумма таргетов детей за повтор — подтверждено повторно (600 = 300+300), досчитывает сервер.
 
+**6-й пример (полный ответ `/training/program/calculate`) закрыл вопрос формы ответа:**
+
+- Ответ — НЕ обогащённый объект программы, а объект статистики: `data.planDuration/planDistance/planTrainingLoad/planSets/planPitch/distanceDisplayUnit/exerciseBarChart` (+ нулевые `actual*` поля). Design-решение "проксировать ответ напрямую в programs[]" было неверным — веб-клиент мержит эти поля в draft сам. Реализовано в `CorosWorkoutService.build_schedule_payload`: `{**draft, distance: planDistance, duration: planDuration, trainingLoad: planTrainingLoad, totalSets/sets: planSets, pitch: planPitch, distanceDisplayUnit, exerciseBarChart}` — набор полей совпадает с перехваченным `schedule/update`.
+
 Осталось закрыть (не блокирует live-тест):
 
-1. **Тело ответа `/training/program/calculate`** — валидировать при первом dry-run, что ответ содержит все нужные для `/schedule/update` поля программы (design-решение "проксируем ответ calculate напрямую в programs[]").
-2. **Подтвердить гипотезу про два вида отдыха** — recovery внутри повтора (`exerciseType=4`) vs пауза между сетами (`restValue` group-узла): проверится на первом live-тесте.
+1. **Подтвердить гипотезу про два вида отдыха** — recovery внутри повтора (`exerciseType=4`) vs пауза между сетами (`restValue` group-узла): проверится на первом live-тесте.
 
 ## Data model
 
