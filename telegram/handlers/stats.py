@@ -152,7 +152,8 @@ async def get_stats_message_text(profile: UserProfile, period: str) -> str:
         logger.error(f"Stats failed for tg_id={profile.tg_id}: {e}", exc_info=True)
         return "Couldn't load stats — try again later."
 
-    return text or f"No workouts in {label.lower()} yet 💤"
+    period = format_period(start_date, end_date)
+    return text or f"No workouts in {label.lower()} ({period}) yet 💤"
 
 
 @stats_router.message(Command("stats"))
