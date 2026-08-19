@@ -47,6 +47,9 @@ def _format_intensity(intensity) -> str:
     if intensity.type == "hr":
         rng = f"{value:g}-{extend:g}" if extend and extend != value else f"{value:g}"
         return f" @ {rng} bpm"
+    if intensity.type == "power":
+        rng = f"{value:g}-{extend:g}" if extend and extend != value else f"{value:g}"
+        return f" @ {rng} W"
 
     # pace, sec/km
     def fmt(v):
@@ -58,7 +61,12 @@ def _format_intensity(intensity) -> str:
 
 
 def render_plan_preview(plan: WorkoutPlan) -> str:
-    lines = [f"🏃 <b>{plan.name}</b>", f"📅 {plan.target_date.isoformat()}", ""]
+    sport_icon = "🚴" if plan.sport_type == "cycling" else "🏃"
+    lines = [
+        f"{sport_icon} <b>{plan.name}</b>",
+        f"📅 {plan.target_date.isoformat()}",
+        "",
+    ]
     for step in plan.steps:
         if isinstance(step, SimpleStep):
             icon = "🔥" if step.kind == "warmup" else "🧊"

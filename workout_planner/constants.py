@@ -17,9 +17,11 @@ __all__ = [
     "PACE_VALUE_FACTOR",
     "DISTANCE_TARGET_FACTOR",
     "PB_VERSION",
+    "SPORT_TYPES",
     "GROUP_EXERCISE_TEMPLATE",
     "STEP_EXERCISE_TEMPLATES",
     "PROGRAM_DRAFT_TEMPLATE",
+    "PROGRAM_SPORT_OVERRIDES",
 ]
 
 API_URLS = {
@@ -130,46 +132,86 @@ _STEP_EXERCISE_BASE = {
     "videoUrl": "",
 }
 
+SPORT_TYPES = {"running": 1, "cycling": 2}
+
 # name/originId/overview identify built-in Coros exercise library entries
-# (running warm-up / training / cool-down) that the web builder always uses.
+# (warm-up / training / cool-down per sport) that the web builder always uses.
+_STEP_LIBRARY = {
+    "running": {
+        ExerciseType.WARMUP: {
+            "createTimestamp": 1586584068,
+            "defaultOrder": 1,
+            "name": "T1120",
+            "originId": "425895398452936705",
+            "overview": "sid_run_warm_up_dist",
+        },
+        ExerciseType.WORK: {
+            "createTimestamp": 1587381919,
+            "defaultOrder": 2,
+            "isDefaultAdd": 1,
+            "name": "T3001",
+            "originId": "426109589008859136",
+            "overview": "sid_run_training",
+        },
+        ExerciseType.REST: {
+            "createTimestamp": 1586584214,
+            "defaultOrder": 3,
+            "name": "T1123",
+            "originId": "425895398452936705",
+            "overview": "sid_run_cool_down_dist",
+        },
+        ExerciseType.COOLDOWN: {
+            "createTimestamp": 1586584214,
+            "defaultOrder": 3,
+            "name": "T1122",
+            "originId": "425895456971866112",
+            "overview": "sid_run_cool_down_dist",
+        },
+    },
+    "cycling": {
+        ExerciseType.WARMUP: {
+            "createTimestamp": 1586585721,
+            "defaultOrder": 1,
+            "name": "T1120",
+            "originId": "425895398452936705",
+            "overview": "sid_bike_warm_up_dist",
+        },
+        ExerciseType.WORK: {
+            "createTimestamp": 1586585061,
+            "defaultOrder": 2,
+            "isDefaultAdd": 1,
+            "name": "T4000",
+            "originId": "426109589008859136",
+            "overview": "sid_bike_dist_speed",
+        },
+        ExerciseType.REST: {
+            "createTimestamp": 1586585838,
+            "defaultOrder": 3,
+            "name": "T1123",
+            "originId": "425895398452936705",
+            "overview": "sid_bike_cool_down_dist",
+        },
+        ExerciseType.COOLDOWN: {
+            "createTimestamp": 1586585838,
+            "defaultOrder": 3,
+            "name": "T1122",
+            "originId": "425895456971866112",
+            "overview": "sid_bike_cool_down_dist",
+        },
+    },
+}
+
 STEP_EXERCISE_TEMPLATES = {
-    ExerciseType.WARMUP: {
-        **_STEP_EXERCISE_BASE,
-        "createTimestamp": 1586584068,
-        "defaultOrder": 1,
-        "exerciseType": ExerciseType.WARMUP.value,
-        "name": "T1120",
-        "originId": "425895398452936705",
-        "overview": "sid_run_warm_up_dist",
-    },
-    ExerciseType.WORK: {
-        **_STEP_EXERCISE_BASE,
-        "createTimestamp": 1587381919,
-        "defaultOrder": 2,
-        "exerciseType": ExerciseType.WORK.value,
-        "isDefaultAdd": 1,
-        "name": "T3001",
-        "originId": "426109589008859136",
-        "overview": "sid_run_training",
-    },
-    ExerciseType.REST: {
-        **_STEP_EXERCISE_BASE,
-        "createTimestamp": 1586584214,
-        "defaultOrder": 3,
-        "exerciseType": ExerciseType.REST.value,
-        "name": "T1123",
-        "originId": "425895398452936705",
-        "overview": "sid_run_cool_down_dist",
-    },
-    ExerciseType.COOLDOWN: {
-        **_STEP_EXERCISE_BASE,
-        "createTimestamp": 1586584214,
-        "defaultOrder": 3,
-        "exerciseType": ExerciseType.COOLDOWN.value,
-        "name": "T1122",
-        "originId": "425895456971866112",
-        "overview": "sid_run_cool_down_dist",
-    },
+    sport: {
+        exercise_type: {
+            **_STEP_EXERCISE_BASE,
+            "exerciseType": exercise_type.value,
+            "sportType": SPORT_TYPES[sport],
+            **library_entry,
+        }
+        for exercise_type, library_entry in library.items()
+    }
+    for sport, library in _STEP_LIBRARY.items()
 }
 
 PROGRAM_DRAFT_TEMPLATE = {
@@ -220,4 +262,28 @@ PROGRAM_DRAFT_TEMPLATE = {
     "poolLengthId": 1,
     "poolLengthUnit": 2,
     "sourceId": "425706707117850624",
+}
+
+# Per-sport program-level differences (captured from the web builder's
+# drafts): sportType, cover image source, and pbVersion (2 for running
+# drafts, 5 for cycling drafts).
+PROGRAM_SPORT_OVERRIDES = {
+    "running": {
+        "sportType": SPORT_TYPES["running"],
+        "sourceId": "425706707117850624",
+        "sourceUrl": (
+            "https://d31oxp44ddzkyk.cloudfront.net/source/source_default/0/"
+            "ee2ec19837ba4093b7c8617eb2f9b1f5.jpg"
+        ),
+        "pbVersion": 2,
+    },
+    "cycling": {
+        "sportType": SPORT_TYPES["cycling"],
+        "sourceId": "425868133463670784",
+        "sourceUrl": (
+            "https://d31oxp44ddzkyk.cloudfront.net/source/source_default/0/"
+            "2fbd46e17bc54bc5873415c9fa767bdc.jpg"
+        ),
+        "pbVersion": 5,
+    },
 }

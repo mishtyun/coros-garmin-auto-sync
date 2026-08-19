@@ -11,6 +11,7 @@ from workout_planner.constants import (
     GROUP_EXERCISE_TEMPLATE,
     PACE_VALUE_FACTOR,
     PROGRAM_DRAFT_TEMPLATE,
+    PROGRAM_SPORT_OVERRIDES,
     STEP_EXERCISE_TEMPLATES,
     ExerciseType,
     HrType,
@@ -57,6 +58,11 @@ def _apply_intensity(exercise: dict, intensity: IntensityTarget | None) -> None:
         exercise["hrType"] = HrType.CUSTOM_RANGE.value
         exercise["intensityValue"] = int(value)
         exercise["intensityValueExtend"] = int(value_extend)
+    elif intensity.type == "power":  # watts
+        exercise["intensityType"] = IntensityType.POWER.value
+        exercise["hrType"] = HrType.NONE.value
+        exercise["intensityValue"] = int(value)
+        exercise["intensityValueExtend"] = int(value_extend)
     else:  # pace, sec/km
         exercise["intensityType"] = IntensityType.PACE.value
         exercise["hrType"] = HrType.NONE.value
@@ -71,6 +77,7 @@ def _apply_intensity(exercise: dict, intensity: IntensityTarget | None) -> None:
 
 
 def _build_step_exercise(
+    sport: str,
     exercise_type: ExerciseType,
     duration: DurationTarget,
     intensity: IntensityTarget | None,
@@ -78,7 +85,7 @@ def _build_step_exercise(
     sort_no: int,
     group_id: int | str = "",
 ) -> dict:
-    exercise = copy.deepcopy(STEP_EXERCISE_TEMPLATES[exercise_type])
+    exercise = copy.deepcopy(STEP_EXERCISE_TEMPLATES[sport][exercise_type])
     exercise["id"] = exercise_id
     exercise["sortNo"] = sort_no
     exercise["groupId"] = group_id
@@ -87,18 +94,22 @@ def _build_step_exercise(
     return exercise
 
 
-def _build_simple_step(step: SimpleStep, exercise_id: int, sort_no: int) -> list[dict]:
+def _build_simple_step(
+    sport: str, step: SimpleStep, exercise_id: int, sort_no: int
+) -> list[dict]:
     exercise_type = (
         ExerciseType.WARMUP if step.kind == "warmup" else ExerciseType.COOLDOWN
     )
     return [
         _build_step_exercise(
-            exercise_type, step.duration, step.intensity, exercise_id, sort_no
+            sport, exercise_type, step.duration, step.intensity, exercise_id, sort_no
         )
     ]
 
 
-def _build_interval_step(step: IntervalStep, group_id: int, sort_no: int) -> list[dict]:
+def _build_interval_step(
+    sport: str, step: IntervalStep, group_id: int, sort_no: int
+) -> list[dict]:
     group = copy.deepcopy(GROUP_EXERCISE_TEMPLATE)
     group["id"] = group_id
     group["sortNo"] = sort_no
@@ -106,6 +117,7 @@ def _build_interval_step(step: IntervalStep, group_id: int, sort_no: int) -> lis
     group["restValue"] = step.rest_between_sets_sec
 
     work = _build_step_exercise(
+        sport,
         ExerciseType.WORK,
         step.work_duration,
         step.work_intensity,
@@ -114,6 +126,7 @@ def _build_interval_step(step: IntervalStep, group_id: int, sort_no: int) -> lis
         group_id=group_id,
     )
     rest = _build_step_exercise(
+        sport,
         ExerciseType.REST,
         step.rest_duration,
         step.rest_intensity,
@@ -131,15 +144,20 @@ def build_draft_program(plan: WorkoutPlan) -> dict:
 
     for step in plan.steps:
         if isinstance(step, SimpleStep):
-            built = _build_simple_step(step, exercise_id=next_id, sort_no=sort_no)
+            built = _build_simple_step(
+                plan.sport_type, step, exercise_id=next_id, sort_no=sort_no
+            )
         else:
-            built = _build_interval_step(step, group_id=next_id, sort_no=sort_no)
+            built = _build_interval_step(
+                plan.sport_type, step, group_id=next_id, sort_no=sort_no
+            )
 
         exercises.extend(built)
         next_id += len(built)
         sort_no += len(built)
 
     program = copy.deepcopy(PROGRAM_DRAFT_TEMPLATE)
+    program.update(PROGRAM_SPORT_OVERRIDES[plan.sport_type])
     program["name"] = plan.name
     program["exercises"] = exercises
     return program

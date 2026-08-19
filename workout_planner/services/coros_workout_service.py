@@ -156,7 +156,7 @@ class CorosWorkoutService(BaseService):
             ],
             "programs": [program],
             "versionObjects": [{"id": id_in_plan, "status": 1}],
-            "pbVersion": PB_VERSION,
+            "pbVersion": draft_program.get("pbVersion", PB_VERSION),
         }
 
     def create_and_schedule(self, plan: WorkoutPlan) -> dict:

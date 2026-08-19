@@ -29,11 +29,14 @@ Respond with ONLY a JSON object matching this schema (no markdown, no prose):
 {schema}
 
 Rules:
+- sport_type: "cycling" when the description mentions bike/cycling/velo
+  ("вело", "велосипед", "bike"); otherwise "running".
 - durations: type "time" -> value in seconds; type "distance" -> value in
-  meters; type "open" (value omitted) -> no target, the runner ends the step
+  meters; type "open" (value omitted) -> no target, the athlete ends the step
   manually ("open time", "no distance or time", "by feel", "открытое время").
 - intensity: type "hr" -> value/value_extend in bpm; type "pace" -> seconds per
-  km (e.g. 5:30/km -> 330). Omit intensity or use type "none" when unspecified.
+  km (e.g. 5:30/km -> 330); type "power" -> watts (cycling only, e.g.
+  "200-250W", "мощно"). Omit intensity or use type "none" when unspecified.
 - Every segment in the description MUST become its own step, in the same
   order. Never merge or drop segments — two warm-ups in a row are valid.
 - "4x400m" style repeats -> one interval step with sets=4.

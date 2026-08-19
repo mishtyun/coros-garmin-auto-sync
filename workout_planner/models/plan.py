@@ -20,8 +20,8 @@ __all__ = [
 
 
 class IntensityTarget(BaseModel):
-    type: Literal["hr", "pace", "none"] = "none"
-    # hr: bpm; pace: seconds per km (e.g. 5:30/km -> 330)
+    type: Literal["hr", "pace", "power", "none"] = "none"
+    # hr: bpm; pace: seconds per km (e.g. 5:30/km -> 330); power: watts
     value: float | None = None
     # upper bound of the range; if omitted, `value` is used for both bounds
     value_extend: float | None = None
@@ -63,7 +63,7 @@ WorkoutStep = Annotated[Union[SimpleStep, IntervalStep], Field(discriminator="ki
 
 
 class WorkoutPlan(BaseModel):
-    sport_type: Literal["running"] = "running"
+    sport_type: Literal["running", "cycling"] = "running"
     name: str
     target_date: date
     steps: list[WorkoutStep] = Field(min_length=1)
