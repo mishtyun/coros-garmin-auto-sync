@@ -19,6 +19,8 @@ class TelegramBotConfiguration(BaseSettings):
     owner_id: int | None = None  # telegram id to receive admin alerts
     tz_offset: int = 3  # users' local timezone offset from UTC, hours
     digest_hour: int = 20  # local hour after which daily/weekly digests are sent
+    webapp_enabled: bool = False  # feature flag for the mini app (api + static + menu)
+    webapp_url: str | None = None  # public https url of the mini app page
 
     @property
     def allowed_ids(self) -> set[int]:
