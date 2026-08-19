@@ -5,9 +5,12 @@ from telegram.enums import DailyActivitiesDateTypes
 __all__ = [
     "SportActionButtons",
     "SportActionCallbacks",
+    "WorkoutPlannerButtons",
+    "WorkoutPlannerCallbacks",
     "get_sport_action_inline_keyboard",
     "get_sport_more_inline_keyboard",
     "get_activities_dates_inline_keyboard",
+    "get_workout_confirm_inline_keyboard",
 ]
 
 
@@ -19,6 +22,16 @@ class SportActionButtons:
     DOWNLOAD_LATEST = "⬇️ Download latest"
     SYNC_LATEST = "🔃 Sync latest"
     BACK = "⬅️ Back"
+
+
+class WorkoutPlannerButtons:
+    CONFIRM = "✅ Schedule it"
+    CANCEL = "❌ Cancel"
+
+
+class WorkoutPlannerCallbacks:
+    CONFIRM = "workout:confirm"
+    CANCEL = "workout:cancel"
 
 
 class SportActionCallbacks:
@@ -74,6 +87,23 @@ def get_sport_more_inline_keyboard() -> types.InlineKeyboardMarkup:
             types.InlineKeyboardButton(
                 text=SportActionButtons.BACK,
                 callback_data=SportActionCallbacks.MENU,
+            ),
+        ],
+    ]
+
+    return types.InlineKeyboardMarkup(inline_keyboard=kb)
+
+
+def get_workout_confirm_inline_keyboard() -> types.InlineKeyboardMarkup:
+    kb = [
+        [
+            types.InlineKeyboardButton(
+                text=WorkoutPlannerButtons.CONFIRM,
+                callback_data=WorkoutPlannerCallbacks.CONFIRM,
+            ),
+            types.InlineKeyboardButton(
+                text=WorkoutPlannerButtons.CANCEL,
+                callback_data=WorkoutPlannerCallbacks.CANCEL,
             ),
         ],
     ]

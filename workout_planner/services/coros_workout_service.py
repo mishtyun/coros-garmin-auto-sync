@@ -1,0 +1,158 @@
+import json
+import logging
+from datetime import date, timedelta
+
+from coros.services import BaseService
+
+from workout_planner.configuration import (
+    WorkoutPlannerConfiguration,
+    workout_planner_configuration,
+)
+from workout_planner.constants import API_URLS, PB_VERSION
+from workout_planner.models import WorkoutPlan
+from workout_planner.services.mapper import build_draft_program
+
+logger = logging.getLogger(__name__)
+
+__all__ = ["CorosWorkoutService", "CorosWorkoutError"]
+
+
+class CorosWorkoutError(Exception):
+    pass
+
+
+class CorosWorkoutService(BaseService):
+    def __init__(self, configuration, planner_configuration=None):
+        super().__init__(configuration)
+        self.planner_configuration: WorkoutPlannerConfiguration = (
+            planner_configuration or workout_planner_configuration
+        )
+
+    def get_url(self, url_key: str, **query_params) -> str:
+        return self.configuration.api_url + API_URLS[url_key].format(**query_params)
+
+    def get_headers(self) -> dict:
+        headers = super().get_headers()
+        headers.update(
+            {
+                "accesstoken": self.redis_repository.get_access_token(
+                    self.configuration.email
+                ),
+            }
+        )
+        return headers
+
+    def _post(self, url_key: str, payload: dict) -> dict:
+        response = self.http.request(
+            "POST",
+            self.get_url(url_key),
+            json=payload,
+            headers=self.get_headers(),
+            timeout=self.planner_configuration.request_timeout,
+        )
+        if response.status != 200:
+            raise CorosWorkoutError(
+                f"Coros {url_key} returned HTTP {response.status}: {response.reason}"
+            )
+
+        body = response.json()
+        # Coros wraps errors in {"result": "...", "message": "..."};
+        # "0000" is the success code across their API.
+        result_code = body.get("result")
+        if result_code is not None and result_code != "0000":
+            raise CorosWorkoutError(
+                f"Coros {url_key} failed: result={result_code}, "
+                f"message={body.get('message')}"
+            )
+        return body
+
+    def calculate(self, draft_program: dict) -> dict:
+        body = self._post("calculate", draft_program)
+        calculated = body.get("data") or {}
+        if not calculated.get("exercises"):
+            raise CorosWorkoutError(
+                "Unexpected /training/program/calculate response shape: "
+                f"{json.dumps(body)[:500]}"
+            )
+        return calculated
+
+    def _query_schedule(self, start_date: date, end_date: date) -> dict:
+        response = self.http.request(
+            "GET",
+            self.get_url(
+                "schedule_query",
+                start_date=start_date.strftime("%Y%m%d"),
+                end_date=end_date.strftime("%Y%m%d"),
+            ),
+            headers=self.get_headers(),
+            timeout=self.planner_configuration.request_timeout,
+        )
+        if response.status != 200:
+            raise CorosWorkoutError(
+                f"Coros schedule_query returned HTTP {response.status}: "
+                f"{response.reason}"
+            )
+        return response.json()
+
+    def _resolve_id_in_plan(self) -> int:
+        # Optional manual override, mostly for debugging.
+        if self.planner_configuration.id_in_plan is not None:
+            return self.planner_configuration.id_in_plan
+
+        # idInPlan is an incrementing per-account counter (observed 79 -> 80);
+        # the schedule query returns the current maximum as data.maxIdInPlan.
+        today = date.today()
+        body = self._query_schedule(
+            today - timedelta(days=7), today + timedelta(days=7)
+        )
+        max_id_in_plan = body.get("data", {}).get("maxIdInPlan")
+        if max_id_in_plan is None:
+            raise CorosWorkoutError(
+                "schedule_query response has no data.maxIdInPlan: "
+                f"{json.dumps(body)[:500]}"
+            )
+        return int(max_id_in_plan) + 1
+
+    @staticmethod
+    def build_schedule_payload(
+        plan: WorkoutPlan, calculated_program: dict, id_in_plan: int
+    ) -> dict:
+        exercise_bar_chart = calculated_program.get("exerciseBarChart", [])
+        program = {**calculated_program, "idInPlan": id_in_plan}
+
+        return {
+            "entities": [
+                {
+                    "happenDay": plan.target_date.strftime("%Y%m%d"),
+                    "idInPlan": id_in_plan,
+                    "sortNo": 0,
+                    "dayNo": 0,
+                    "sortNoInPlan": 0,
+                    "sortNoInSchedule": 0,
+                    "exerciseBarChart": exercise_bar_chart,
+                }
+            ],
+            "programs": [program],
+            "versionObjects": [{"id": id_in_plan, "status": 1}],
+            "pbVersion": PB_VERSION,
+        }
+
+    def create_and_schedule(self, plan: WorkoutPlan) -> dict:
+        draft_program = build_draft_program(plan)
+        calculated_program = self.calculate(draft_program)
+        id_in_plan = self._resolve_id_in_plan()
+        payload = self.build_schedule_payload(plan, calculated_program, id_in_plan)
+
+        if self.planner_configuration.dry_run:
+            logger.info(
+                f"[dry-run] /training/schedule/update payload:\n"
+                f"{json.dumps(payload, indent=2)}"
+            )
+            return {"dry_run": True, "payload": payload}
+
+        body = self._post("schedule_update", payload)
+        logger.info(
+            f"Scheduled workout '{plan.name}' on {plan.target_date} "
+            f"(idInPlan={id_in_plan})"
+        )
+        return body
