@@ -67,9 +67,12 @@ class CorosWorkoutService(BaseService):
         return body
 
     def calculate(self, draft_program: dict) -> dict:
+        # Returns computed stats for the draft (planDuration, planDistance,
+        # planTrainingLoad, planSets, exerciseBarChart, ...) — NOT a program
+        # object; the web client merges these into the draft itself.
         body = self._post("calculate", draft_program)
         calculated = body.get("data") or {}
-        if not calculated.get("exercises"):
+        if not calculated.get("exerciseBarChart"):
             raise CorosWorkoutError(
                 "Unexpected /training/program/calculate response shape: "
                 f"{json.dumps(body)[:500]}"
@@ -115,10 +118,23 @@ class CorosWorkoutService(BaseService):
 
     @staticmethod
     def build_schedule_payload(
-        plan: WorkoutPlan, calculated_program: dict, id_in_plan: int
+        plan: WorkoutPlan, draft_program: dict, calculated: dict, id_in_plan: int
     ) -> dict:
-        exercise_bar_chart = calculated_program.get("exerciseBarChart", [])
-        program = {**calculated_program, "idInPlan": id_in_plan}
+        exercise_bar_chart = calculated.get("exerciseBarChart", [])
+        # Merge the draft with the computed stats, mirroring what the
+        # Training Hub web client sends to /training/schedule/update.
+        program = {
+            **draft_program,
+            "idInPlan": id_in_plan,
+            "distance": calculated.get("planDistance", 0),
+            "duration": calculated.get("planDuration", 0),
+            "trainingLoad": calculated.get("planTrainingLoad", 0),
+            "totalSets": calculated.get("planSets", 0),
+            "sets": calculated.get("planSets", 0),
+            "pitch": calculated.get("planPitch", 0),
+            "distanceDisplayUnit": calculated.get("distanceDisplayUnit", 1),
+            "exerciseBarChart": exercise_bar_chart,
+        }
 
         return {
             "entities": [
@@ -139,9 +155,11 @@ class CorosWorkoutService(BaseService):
 
     def create_and_schedule(self, plan: WorkoutPlan) -> dict:
         draft_program = build_draft_program(plan)
-        calculated_program = self.calculate(draft_program)
+        calculated = self.calculate(draft_program)
         id_in_plan = self._resolve_id_in_plan()
-        payload = self.build_schedule_payload(plan, calculated_program, id_in_plan)
+        payload = self.build_schedule_payload(
+            plan, draft_program, calculated, id_in_plan
+        )
 
         if self.planner_configuration.dry_run:
             logger.info(
