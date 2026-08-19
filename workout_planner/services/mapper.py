@@ -29,7 +29,7 @@ __all__ = ["build_draft_program"]
 
 
 def _apply_duration(exercise: dict, duration: DurationTarget) -> None:
-    if duration.type == "open":
+    if duration.type == "open" or duration.value is None:
         exercise["targetType"] = TargetType.OPEN.value
         exercise["targetValue"] = 0
         exercise["targetDisplayUnit"] = 0
