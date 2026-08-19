@@ -92,6 +92,7 @@ COROS_SPORT_TYPES: dict[int, tuple[str, str]] = {
     400: ("🏋️", "Gym Cardio"),
     401: ("🏋️", "GPS Cardio"),
     402: ("🏋️", "Strength"),
+    403: ("🧘", "Yoga"),
     500: ("⛷️", "Ski"),
     501: ("🏂", "Snowboard"),
     502: ("⛷️", "XC Ski"),
