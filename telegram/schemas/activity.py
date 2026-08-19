@@ -11,9 +11,9 @@ class GarminActivityTypeSchema(CamelModel):
 
 
 class GarminActivityOwnerInfoSchema(CamelModel):
-    owner_id: int
-    owner_display_name: str
-    owner_full_name: str
+    owner_id: int | None = None
+    owner_display_name: str | None = None
+    owner_full_name: str | None = None
     owner_profile_image_url_small: str | None = None
     owner_profile_image_url_medium: str | None = None
     owner_profile_image_url_large: str | None = None
@@ -21,14 +21,14 @@ class GarminActivityOwnerInfoSchema(CamelModel):
 
 class GarminActivitySchema(GarminActivityOwnerInfoSchema):
     activity_id: int
-    activity_name: str
-    start_time_local: str
-    start_time_gmt: str
+    activity_name: str | None = None
+    start_time_local: str | None = None
+    start_time_gmt: str | None = None
 
     activity_type: GarminActivityTypeSchema
 
-    distance: float
-    duration: float
+    distance: float | None = None
+    duration: float | None = None
 
     location_name: str | None = None
 

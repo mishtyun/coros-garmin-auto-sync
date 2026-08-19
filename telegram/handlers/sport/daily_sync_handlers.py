@@ -13,7 +13,7 @@ from telegram.keyboards import (
     get_activities_dates_inline_keyboard,
 )
 from telegram.states.date_picker import CalendarDatePicker
-from telegram.utils import get_activities_reply
+from telegram.utils import get_activities_reply, local_now
 from users.context import UserContext
 
 logger = logging.getLogger(__name__)
@@ -31,7 +31,7 @@ async def sync_today_button_handler(
 ):
     logger.info("Syncing today's activities")
     await callback_query.answer("Syncing today...")
-    today = datetime.now().strftime(DATE_FORMAT)
+    today = local_now().strftime(DATE_FORMAT)
     await process_sync_callback_button_after_datepicker(
         callback_query, user_ctx, today, today
     )
@@ -57,7 +57,7 @@ async def process_sync__date_from_calendar(
 ):
     logger.info(f"Processing sync callback: {callback_query.data}")
 
-    now = datetime.now()
+    now = local_now()
     calendar_datepicker_user_data[callback_query.from_user.id] = {
         "year": now.year,
         "month": now.month,
@@ -79,9 +79,9 @@ async def process_sync_callback_button(
     start_date = end_date = None
 
     if choice.endswith(DailyActivitiesDateTypes.yesterday.value):
-        start_date = end_date = (datetime.now() - timedelta(1)).strftime(DATE_FORMAT)
+        start_date = end_date = (local_now() - timedelta(1)).strftime(DATE_FORMAT)
     elif choice.endswith(DailyActivitiesDateTypes.today.value):
-        start_date = end_date = datetime.now().strftime(DATE_FORMAT)
+        start_date = end_date = local_now().strftime(DATE_FORMAT)
 
     await process_sync_callback_button_after_datepicker(
         callback_query, user_ctx, start_date, end_date

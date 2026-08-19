@@ -2,6 +2,7 @@ import asyncio
 import html
 import logging
 from asyncio import sleep
+from datetime import datetime, timedelta, timezone
 from typing import IO
 
 from aiogram import methods, types
@@ -68,6 +69,13 @@ ACTIVITY_TYPE_LABEL = {
     "walking": "Walk",
     "hiking": "Hike",
 }
+
+
+def local_now() -> datetime:
+    """Current time in the users' local timezone (TELEGRAM_TZ_OFFSET hours)."""
+    from telegram.configuration import telegram_bot_settings
+
+    return datetime.now(timezone.utc) + timedelta(hours=telegram_bot_settings.tz_offset)
 
 
 def get_activity_url(activity_id: str):
@@ -221,7 +229,10 @@ def get_activities_message_text(activities: GarminActivitiesSchema) -> str:
     lines = []
     for activity in activities:
         emoji = get_activity_emoji(activity.activity_type.type_key)
-        name = html.escape(activity.activity_name)
+        name = html.escape(
+            activity.activity_name
+            or get_activity_type_label(activity.activity_type.type_key)
+        )
         activity_url = get_activity_url(activity.activity_id)
 
         details = " · ".join(

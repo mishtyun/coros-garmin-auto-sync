@@ -11,7 +11,7 @@ from coros.repositories.redis_repository import get_coros_redis_repository
 from coros.services import ActivityService, AuthService
 from garmin.client import GarminSessionExpiredError, garmin_client_cache
 from telegram.configuration import telegram_bot_settings
-from telegram.utils import upload_and_get_url
+from telegram.utils import local_now, upload_and_get_url
 from users.models import UserProfile
 from users.repository import get_user_redis_repository
 
@@ -90,7 +90,7 @@ async def _sync_user(bot: Bot, profile: UserProfile) -> None:
         profile.tg_id, profile.garmin_email
     )
 
-    now = datetime.now()
+    now = local_now()
     date_filters = DateActivityFilter(
         start_date=(now - timedelta(1)).strftime(COROS_DATE_FORMAT),
         end_date=now.strftime(COROS_DATE_FORMAT),
@@ -132,7 +132,7 @@ async def _sync_user(bot: Bot, profile: UserProfile) -> None:
 async def _maybe_send_digest(bot: Bot, profile: UserProfile) -> None:
     from telegram.handlers.stats import build_stats_text
 
-    now = datetime.now(timezone.utc)
+    now = local_now()
     if now.hour < telegram_bot_settings.digest_hour:
         return
 

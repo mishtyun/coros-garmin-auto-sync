@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
 from aiogram import F, Router, types
 from aiogram.filters import Command
@@ -12,6 +12,7 @@ from telegram.utils import (
     format_duration,
     get_activity_emoji,
     get_activity_type_label,
+    local_now,
 )
 from users.context import UserContext
 from users.models import UserProfile
@@ -33,7 +34,7 @@ STATS_PERIODS = {
 
 
 def get_period_dates(period: str) -> tuple[str, str]:
-    today = datetime.now(timezone.utc).date()
+    today = local_now().date()
 
     if period == "last_week":
         monday = today - timedelta(days=today.weekday() + 7)
@@ -43,6 +44,12 @@ def get_period_dates(period: str) -> tuple[str, str]:
 
     # this week
     return str(today - timedelta(days=today.weekday())), str(today)
+
+
+def format_period(start_date: str, end_date: str) -> str:
+    start = datetime.fromisoformat(start_date).strftime("%a %d.%m")
+    end = datetime.fromisoformat(end_date).strftime("%a %d.%m")
+    return start if start == end else f"{start} → {end}"
 
 
 async def build_stats_text(
@@ -72,29 +79,36 @@ async def build_stats_text(
         if part
     )
 
-    by_type: dict[str, dict] = {}
+    # group by human label so e.g. "cycling" and "road_biking" merge into one "Ride" line
+    by_type: dict[tuple[str, str], dict] = {}
     for activity in activities:
         type_key = activity.activity_type.type_key
+        group = (get_activity_emoji(type_key), get_activity_type_label(type_key))
         stats = by_type.setdefault(
-            type_key, {"count": 0, "distance": 0.0, "duration": 0.0}
+            group, {"count": 0, "distance": 0.0, "duration": 0.0}
         )
         stats["count"] += 1
         stats["distance"] += activity.distance or 0
         stats["duration"] += activity.duration or 0
 
     type_lines = []
-    for type_key, stats in sorted(
+    for (emoji, type_label), stats in sorted(
         by_type.items(), key=lambda item: item[1]["duration"], reverse=True
     ):
-        line = (
-            f"{get_activity_emoji(type_key)} "
-            f"{get_activity_type_label(type_key)} — {stats['count']}"
+        line = f"{emoji} {type_label} — {stats['count']}"
+        details = " · ".join(
+            part
+            for part in (
+                format_distance(stats["distance"]),
+                format_duration(stats["duration"]),
+            )
+            if part
         )
-        if distance := format_distance(stats["distance"]):
-            line += f" · {distance}"
+        if details:
+            line += f" · {details}"
         type_lines.append(line)
 
-    period = start_date if start_date == end_date else f"{start_date} → {end_date}"
+    period = format_period(start_date, end_date)
     return f"📊 <b>{label}</b> · {period}\n{totals}\n\n" + "\n".join(type_lines)
 
 

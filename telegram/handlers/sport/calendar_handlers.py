@@ -6,6 +6,7 @@ from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 
 from telegram.calendar.keyboards import generate_calendar
+from telegram.utils import local_now
 from telegram.handlers.sport.calendar_state import calendar_datepicker_user_data
 from telegram.handlers.sport.daily_get_handlers import (
     process_get_callback_button_after_datepicker,
@@ -107,7 +108,7 @@ async def process_next_month(callback: types.CallbackQuery):
 async def process_current_month(callback: types.CallbackQuery):
     """Обработчик кнопки 'Текущий месяц'"""
     try:
-        now = datetime.now()
+        now = local_now()
         user_id = callback.from_user.id
 
         if (

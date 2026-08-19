@@ -17,7 +17,8 @@ class TelegramBotConfiguration(BaseSettings):
     allowed_user_ids: str = ""
     autosync_interval: int = 60 * 10  # seconds between autosync cycles
     owner_id: int | None = None  # telegram id to receive admin alerts
-    digest_hour: int = 17  # UTC hour after which daily/weekly digests are sent
+    tz_offset: int = 3  # users' local timezone offset from UTC, hours
+    digest_hour: int = 20  # local hour after which daily/weekly digests are sent
 
     @property
     def allowed_ids(self) -> set[int]:
@@ -28,7 +29,9 @@ class TelegramBotConfiguration(BaseSettings):
         }
 
         if not allowed_ids:
-            logger.warning("No allowed user IDs found in environment variables, using default values")
+            logger.warning(
+                "No allowed user IDs found in environment variables, using default values"
+            )
             allowed_ids = {665304002, 944478053}
 
         logger.debug(f"Allowed user IDs: {allowed_ids}")
