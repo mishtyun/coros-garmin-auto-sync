@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 class ActivityService(BaseService):
-    DEFAULT_PAGE_SIZE = 10
+    DEFAULT_PAGE_SIZE = 200  # Coros API max page size
     DEFAULT_PAGE_NUMBER = 1
 
     def get_url(
@@ -62,6 +62,8 @@ class ActivityService(BaseService):
         if not activities_data or not isinstance(activities_data, Sequence):
             return []
 
+        logger.debug(f"[get_activities] item keys: {sorted(activities_data[0])}")
+
         ta = TypeAdapter(list[ActivityShortSchema])
         return ta.validate_python(activities_data)
 
@@ -95,7 +97,7 @@ class ActivityService(BaseService):
         return_only_name: bool = False,
     ) -> str:
         file_name = get_file_name(
-            base_name=activity_model.name,
+            base_name=activity_model.name or "workout",
             extension=extension.lower(),
             label_id=activity_model.label_id,
             sport_type=activity_model.sport_type,

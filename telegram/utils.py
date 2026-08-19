@@ -71,6 +71,54 @@ ACTIVITY_TYPE_LABEL = {
 }
 
 
+# Coros sportType codes (per reverse-engineered xballoy/coros-api enum)
+COROS_SPORT_TYPES: dict[int, tuple[str, str]] = {
+    100: ("🏃", "Run"),
+    101: ("🏃", "Indoor Run"),
+    102: ("🏃", "Trail Run"),
+    103: ("🏃", "Track Run"),
+    104: ("🥾", "Hike"),
+    105: ("🥾", "Mountain Climb"),
+    106: ("🧗", "Climb"),
+    200: ("🚴", "Ride"),
+    201: ("🚴", "Indoor Ride"),
+    202: ("🚴", "E-Bike Ride"),
+    203: ("🚵", "Gravel Ride"),
+    204: ("🚵", "MTB Ride"),
+    205: ("🚵", "E-MTB Ride"),
+    299: ("🚴", "Ride"),
+    300: ("🏊", "Pool Swim"),
+    301: ("🏊", "Open Water"),
+    400: ("🏋️", "Gym Cardio"),
+    401: ("🏋️", "GPS Cardio"),
+    402: ("🏋️", "Strength"),
+    500: ("⛷️", "Ski"),
+    501: ("🏂", "Snowboard"),
+    502: ("⛷️", "XC Ski"),
+    503: ("⛷️", "Ski Touring"),
+    700: ("🚣", "Row"),
+    701: ("🚣", "Indoor Row"),
+    702: ("🛶", "Whitewater"),
+    704: ("🛶", "Flatwater"),
+    705: ("🏄", "Windsurfing"),
+    706: ("🏄", "Speedsurfing"),
+    800: ("🧗", "Indoor Climb"),
+    801: ("🧗", "Bouldering"),
+    900: ("🚶", "Walk"),
+    901: ("🪢", "Jump Rope"),
+    902: ("🪜", "Stairs"),
+    10000: ("🏆", "Triathlon"),
+    10001: ("🏆", "Multisport"),
+    10002: ("⛷️", "Ski Touring"),
+    10003: ("🧗", "Multi-Pitch"),
+    98: ("🏅", "Custom"),
+}
+
+
+def get_coros_sport_emoji_label(sport_type: int) -> tuple[str, str]:
+    return COROS_SPORT_TYPES.get(sport_type, (DEFAULT_ACTIVITY_EMOJI, "Workout"))
+
+
 def local_now() -> datetime:
     """Current time in the users' local timezone (TELEGRAM_TZ_OFFSET hours)."""
     from telegram.configuration import telegram_bot_settings

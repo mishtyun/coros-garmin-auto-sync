@@ -4,17 +4,16 @@ from datetime import datetime, timedelta
 
 from aiogram import F, Router, types
 from aiogram.filters import Command
-from pydantic import TypeAdapter
 
-from telegram.schemas.activity import GarminActivitiesSchema
+from coros.configuration import CorosConfiguration
+from coros.models import DateActivityFilter
+from coros.services import ActivityService, AuthService
 from telegram.utils import (
     format_distance,
     format_duration,
-    get_activity_emoji,
-    get_activity_type_label,
+    get_coros_sport_emoji_label,
     local_now,
 )
-from users.context import UserContext
 from users.models import UserProfile
 from users.repository import get_user_redis_repository
 
@@ -55,14 +54,27 @@ def format_period(start_date: str, end_date: str) -> str:
 async def build_stats_text(
     profile: UserProfile, start_date: str, end_date: str, label: str
 ) -> str | None:
-    """Aggregate Garmin activities for the period; None when there are none."""
-    user_ctx = UserContext(tg_id=profile.tg_id, profile=profile)
-    garmin_api = await user_ctx.get_garmin()
+    """Aggregate Coros activities for the period; None when there are none.
 
-    raw_activities = await asyncio.to_thread(
-        garmin_api.get_activities_by_date, start_date=start_date, end_date=end_date
+    Coros (not Garmin) is the source of truth here: stats include workouts
+    that haven't been synced yet and work even if the Garmin session is dead.
+    """
+    coros_config = CorosConfiguration(
+        email=profile.coros_email, password_md5=profile.coros_password_md5
     )
-    activities = TypeAdapter(GarminActivitiesSchema).validate_python(raw_activities)
+
+    access_token = await asyncio.to_thread(
+        AuthService(coros_config).get_or_set_access_token
+    )
+    if not access_token:
+        raise RuntimeError(f"Coros auth failed for {profile.coros_email}")
+
+    date_filters = DateActivityFilter(
+        start_date=start_date.replace("-", ""), end_date=end_date.replace("-", "")
+    )
+    activities = await asyncio.to_thread(
+        ActivityService(coros_config).get_activities, date_filters
+    )
     if not activities:
         return None
 
@@ -79,11 +91,10 @@ async def build_stats_text(
         if part
     )
 
-    # group by human label so e.g. "cycling" and "road_biking" merge into one "Ride" line
+    # group by human label so e.g. outdoor and helmet rides merge into one "Ride" line
     by_type: dict[tuple[str, str], dict] = {}
     for activity in activities:
-        type_key = activity.activity_type.type_key
-        group = (get_activity_emoji(type_key), get_activity_type_label(type_key))
+        group = get_coros_sport_emoji_label(activity.sport_type)
         stats = by_type.setdefault(
             group, {"count": 0, "distance": 0.0, "duration": 0.0}
         )
