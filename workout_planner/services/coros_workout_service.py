@@ -2,7 +2,7 @@ import json
 import logging
 from datetime import date, timedelta
 
-from coros.services import BaseService
+from coros.services import AuthService, BaseService
 
 from workout_planner.configuration import (
     WorkoutPlannerConfiguration,
@@ -19,6 +19,9 @@ __all__ = ["CorosWorkoutService", "CorosWorkoutError"]
 
 class CorosWorkoutError(Exception):
     pass
+
+
+TOKEN_INVALID_RESULT = "1019"
 
 
 class CorosWorkoutService(BaseService):
@@ -42,29 +45,50 @@ class CorosWorkoutService(BaseService):
         )
         return headers
 
-    def _post(self, url_key: str, payload: dict) -> dict:
-        response = self.http.request(
-            "POST",
-            self.get_url(url_key),
-            json=payload,
-            headers=self.get_headers(),
-            timeout=self.planner_configuration.request_timeout,
+    def _refresh_access_token(self) -> None:
+        access_token = AuthService(self.configuration).send_login_request(
+            return_token=True
         )
+        if not access_token:
+            raise CorosWorkoutError("Coros re-login failed")
+        self.redis_repository.add_access_token(self.configuration.email, access_token)
+
+    def _request(
+        self, method: str, url: str, payload: dict | None = None, retry: bool = True
+    ) -> dict:
+        kwargs: dict = {
+            "headers": self.get_headers(),
+            "timeout": self.planner_configuration.request_timeout,
+        }
+        if payload is not None:
+            kwargs["json"] = payload
+
+        response = self.http.request(method, url, **kwargs)
         if response.status != 200:
             raise CorosWorkoutError(
-                f"Coros {url_key} returned HTTP {response.status}: {response.reason}"
+                f"Coros returned HTTP {response.status} for {url}: {response.reason}"
             )
 
         body = response.json()
         # Coros wraps errors in {"result": "...", "message": "..."};
         # "0000" is the success code across their API.
         result_code = body.get("result")
+        if result_code == TOKEN_INVALID_RESULT and retry:
+            # The cached token can be invalidated server-side before our
+            # 30-min Redis TTL expires (e.g. logging into Training Hub web
+            # issues a new token) — re-login once and retry.
+            logger.info("Coros access token invalid, re-authenticating")
+            self._refresh_access_token()
+            return self._request(method, url, payload, retry=False)
         if result_code is not None and result_code != "0000":
             raise CorosWorkoutError(
-                f"Coros {url_key} failed: result={result_code}, "
+                f"Coros request to {url} failed: result={result_code}, "
                 f"message={body.get('message')}"
             )
         return body
+
+    def _post(self, url_key: str, payload: dict) -> dict:
+        return self._request("POST", self.get_url(url_key), payload)
 
     def calculate(self, draft_program: dict) -> dict:
         # Returns computed stats for the draft (planDuration, planDistance,
@@ -80,22 +104,14 @@ class CorosWorkoutService(BaseService):
         return calculated
 
     def _query_schedule(self, start_date: date, end_date: date) -> dict:
-        response = self.http.request(
+        return self._request(
             "GET",
             self.get_url(
                 "schedule_query",
                 start_date=start_date.strftime("%Y%m%d"),
                 end_date=end_date.strftime("%Y%m%d"),
             ),
-            headers=self.get_headers(),
-            timeout=self.planner_configuration.request_timeout,
         )
-        if response.status != 200:
-            raise CorosWorkoutError(
-                f"Coros schedule_query returned HTTP {response.status}: "
-                f"{response.reason}"
-            )
-        return response.json()
 
     def _resolve_id_in_plan(self) -> int:
         # Optional manual override, mostly for debugging.
