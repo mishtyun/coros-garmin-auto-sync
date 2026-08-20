@@ -8,10 +8,19 @@
   <link rel="stylesheet" href="/webapp/styles.css">
 </head>
 <body>
-  <nav class="tabs">
-    <button class="tab active" data-tab="dashboard">Dashboard</button>
-    <button class="tab" data-tab="settings">Settings</button>
-  </nav>
+  <header class="app-header">
+    <div class="app-title">
+      <span class="app-logo">🏃</span>
+      <div>
+        <div class="app-name">Coros → Garmin</div>
+        <div class="app-sub" id="header-sub">sync dashboard</div>
+      </div>
+    </div>
+    <nav class="tabs" role="tablist">
+      <button class="tab active" data-tab="dashboard">Dashboard</button>
+      <button class="tab" data-tab="settings">Settings</button>
+    </nav>
+  </header>
 
   <main id="tab-dashboard" class="tab-panel">
     <div class="segmented" id="period-switch">
@@ -20,29 +29,29 @@
       <button class="seg" data-period="month">This month</button>
     </div>
 
-    <section class="card" id="stats-card">
-      <div class="placeholder">Loading…</div>
+    <section id="stats-card">
+      <div class="skeleton-block" style="height:120px"></div>
     </section>
 
     <section class="card">
-      <h3 class="card-title">Last 7 days</h3>
+      <div class="card-title">Last 7 days</div>
       <div id="activities-list">
-        <div class="placeholder">Loading…</div>
+        <div class="skeleton-block" style="height:96px"></div>
       </div>
     </section>
 
     <div class="actions">
-      <button class="btn" id="btn-sync-today">🔄 Sync today</button>
-      <button class="btn btn-secondary" id="btn-sync-latest">🔃 Sync latest</button>
+      <button class="btn btn-primary" id="btn-sync-today">Sync today</button>
+      <button class="btn btn-tinted" id="btn-sync-latest">Sync latest</button>
     </div>
     <div id="sync-result"></div>
   </main>
 
   <main id="tab-settings" class="tab-panel hidden">
     <section class="card" id="settings-card">
-      <div class="placeholder">Loading…</div>
+      <div class="skeleton-block" style="height:150px"></div>
     </section>
-    <section class="card" id="account-card"></section>
+    <section class="card hidden" id="account-card"></section>
   </main>
 
   <div id="toast" class="toast hidden"></div>

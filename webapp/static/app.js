@@ -38,6 +38,18 @@ function esc(s) {
   return d.innerHTML;
 }
 
+// "19.8 km" -> ["19.8", "km"]; null -> ["—", ""]
+function splitValue(text) {
+  if (!text) return ["—", ""];
+  const parts = String(text).split(" ");
+  return parts.length === 2 ? parts : [text, ""];
+}
+
+function prettyDate(iso) {
+  const d = new Date(`${iso}T00:00:00`);
+  return d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+}
+
 /* ---------- tabs ---------- */
 
 document.querySelectorAll(".tab").forEach((btn) => {
@@ -46,6 +58,7 @@ document.querySelectorAll(".tab").forEach((btn) => {
     btn.classList.add("active");
     document.querySelectorAll(".tab-panel").forEach((p) => p.classList.add("hidden"));
     document.getElementById(`tab-${btn.dataset.tab}`).classList.remove("hidden");
+    tg.HapticFeedback?.selectionChanged?.();
   });
 });
 
@@ -53,37 +66,62 @@ document.querySelectorAll(".tab").forEach((btn) => {
 
 async function loadStats(period) {
   const card = document.getElementById("stats-card");
-  card.innerHTML = '<div class="placeholder">Loading…</div>';
+  card.innerHTML = '<div class="skeleton-block" style="height:120px"></div>';
   try {
     const s = await api(`/api/stats?period=${period}`);
+    const periodLine = `${esc(s.label)} · ${prettyDate(s.start_date)}${
+      s.start_date === s.end_date ? "" : ` – ${prettyDate(s.end_date)}`
+    }`;
+
     if (s.totals.count === 0) {
-      card.innerHTML = `<div class="stats-header">${esc(s.label)}</div>
-        <div class="stats-period">${esc(s.start_date)} → ${esc(s.end_date)}</div>
-        <div class="empty">No workouts yet 💤</div>`;
+      card.innerHTML = `<div class="stats-card fade-in">
+        <div class="stats-period">${periodLine}</div>
+        <div class="empty">No workouts yet 💤</div>
+      </div>`;
       return;
     }
-    const totals = [
-      `${s.totals.count} workouts`,
-      s.totals.distance_text,
-      s.totals.duration_text,
-    ]
-      .filter(Boolean)
-      .join(" · ");
+
+    const [dist, distUnit] = splitValue(s.totals.distance_text);
+    const tiles = `
+      <div class="tiles">
+        <div class="tile">
+          <div class="tile-value">${esc(s.totals.count)}</div>
+          <div class="tile-label">workouts</div>
+        </div>
+        <div class="tile">
+          <div class="tile-value">${esc(dist)}<small>${esc(distUnit)}</small></div>
+          <div class="tile-label">distance</div>
+        </div>
+        <div class="tile">
+          <div class="tile-value">${esc(s.totals.duration_text || "—")}</div>
+          <div class="tile-label">time</div>
+        </div>
+      </div>`;
+
+    const totalDuration = s.totals.duration_s || 1;
     const rows = s.by_type
       .map((t) => {
         const details = [t.count, t.distance_text, t.duration_text]
           .filter(Boolean)
           .join(" · ");
-        return `<div class="type-row"><div class="row-name">${esc(t.emoji)} ${esc(
-          t.label
-        )}</div><div class="row-details">${esc(details)}</div></div>`;
+        const share = Math.max(3, Math.round((t.duration_s / totalDuration) * 100));
+        return `<div class="type-row">
+          <div class="type-head">
+            <div class="type-name">${esc(t.emoji)} ${esc(t.label)}</div>
+            <div class="type-details">${esc(details)}</div>
+          </div>
+          <div class="meter"><div class="meter-fill" style="width:${share}%"></div></div>
+        </div>`;
       })
       .join("");
-    card.innerHTML = `<div class="stats-header">${esc(s.label)}</div>
-      <div class="stats-period">${esc(s.start_date)} → ${esc(s.end_date)}</div>
-      <div class="stats-totals">${esc(totals)}</div>${rows}`;
+
+    card.innerHTML = `<div class="stats-card fade-in">
+      <div class="stats-period">${periodLine}</div>
+      ${tiles}
+      <div class="breakdown">${rows}</div>
+    </div>`;
   } catch (e) {
-    card.innerHTML = `<div class="empty">${esc(e.message)}</div>`;
+    card.innerHTML = `<div class="stats-card"><div class="empty">${esc(e.message)}</div></div>`;
   }
 }
 
@@ -91,6 +129,7 @@ document.querySelectorAll(".seg").forEach((btn) => {
   btn.addEventListener("click", () => {
     document.querySelectorAll(".seg").forEach((b) => b.classList.remove("active"));
     btn.classList.add("active");
+    tg.HapticFeedback?.selectionChanged?.();
     loadStats(btn.dataset.period);
   });
 });
@@ -107,13 +146,14 @@ async function loadActivities() {
     }
     list.innerHTML = data.activities
       .map((a) => {
-        const details = [a.distance_text, a.duration_text].filter(Boolean).join(" · ");
-        return `<div class="activity-row">
-          <div>
-            <div class="row-name">${esc(a.emoji)} ${esc(a.name)}</div>
-            <div class="row-date">${esc(a.date)}</div>
+        const details = [a.distance_text, a.duration_text].filter(Boolean).join("<br>");
+        return `<div class="activity-row fade-in">
+          <div class="activity-icon">${esc(a.emoji)}</div>
+          <div class="activity-main">
+            <div class="activity-name">${esc(a.name)}</div>
+            <div class="activity-date">${prettyDate(a.date)}</div>
           </div>
-          <div class="row-details">${esc(details)}</div>
+          <div class="activity-details">${details}</div>
         </div>`;
       })
       .join("");
@@ -126,7 +166,7 @@ async function loadActivities() {
 
 function renderSyncResult(lines) {
   document.getElementById("sync-result").innerHTML = lines
-    .map((l) => `<div class="line">${l}</div>`)
+    .map((l) => `<div class="line fade-in">${l}</div>`)
     .join("");
 }
 
@@ -214,10 +254,12 @@ function renderSettings() {
     });
   });
 
-  document.getElementById("account-card").innerHTML = `
-    <h3 class="card-title">Linked accounts</h3>
-    <div class="account-line"><span>Coros:</span> ${esc(me.coros_email)}</div>
-    <div class="account-line"><span>Garmin:</span> ${esc(me.garmin_email)}</div>`;
+  const account = document.getElementById("account-card");
+  account.classList.remove("hidden");
+  account.innerHTML = `
+    <div class="card-title">Linked accounts</div>
+    <div class="account-line"><span>Coros</span> · ${esc(me.coros_email)}</div>
+    <div class="account-line"><span>Garmin</span> · ${esc(me.garmin_email)}</div>`;
 }
 
 /* ---------- boot ---------- */
@@ -226,13 +268,11 @@ async function boot() {
   try {
     me = await api("/api/me");
     renderSettings();
+    document.getElementById("header-sub").textContent = me.coros_email;
   } catch (e) {
-    document.getElementById("settings-card").innerHTML = `<div class="empty">${esc(
-      e.message
-    )}</div>`;
-    document.getElementById("stats-card").innerHTML = `<div class="empty">${esc(
-      e.message
-    )}</div>`;
+    const err = `<div class="empty">${esc(e.message)}</div>`;
+    document.getElementById("settings-card").innerHTML = err;
+    document.getElementById("stats-card").innerHTML = `<div class="stats-card">${err}</div>`;
     document.getElementById("activities-list").innerHTML = "";
     return;
   }
