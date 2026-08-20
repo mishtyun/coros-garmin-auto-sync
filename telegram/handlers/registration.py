@@ -13,7 +13,7 @@ from coros.services import AuthService
 from garmin.client import GarminMFARequiredError, garmin_client_cache
 from garmin.client import login_with_credentials
 from telegram.configuration import telegram_bot_settings
-from telegram.states.registration import RegistrationStates
+from telegram.states.registration import GarminRelinkStates, RegistrationStates
 from users.models import UserProfile
 from users.repository import get_user_redis_repository
 
@@ -53,10 +53,27 @@ async def register_cmd(message: types.Message, state: FSMContext):
     )
 
 
-@registration_router.message(Command("cancel"), StateFilter(RegistrationStates))
+@registration_router.message(
+    Command("cancel"), StateFilter(RegistrationStates, GarminRelinkStates)
+)
 async def cancel_cmd(message: types.Message, state: FSMContext):
     await state.clear()
     await message.answer("Registration cancelled.")
+
+
+@registration_router.message(Command("relink_garmin"))
+async def relink_garmin_cmd(message: types.Message, state: FSMContext):
+    profile = get_user_redis_repository().get_profile(message.from_user.id)
+    if not profile:
+        await message.answer("You're not registered yet — send /register")
+        return
+
+    await state.set_state(GarminRelinkStates.garmin_email)
+    await message.answer(
+        f"Re-linking Garmin only — Coros stays untouched.\n\n"
+        f"Send your Garmin email (current: {mask_email(profile.garmin_email)}), "
+        f"or /cancel"
+    )
 
 
 @registration_router.message(Command("settings"))
@@ -199,6 +216,55 @@ async def unlink_cmd(message: types.Message):
     get_user_redis_repository().delete_user(tg_id)
     garmin_client_cache.evict(tg_id)
     await message.answer("Your accounts are unlinked and data removed.")
+
+
+@registration_router.message(StateFilter(GarminRelinkStates.garmin_email))
+async def relink_garmin_email(message: types.Message, state: FSMContext):
+    await state.update_data(garmin_email=message.text.strip())
+    await state.set_state(GarminRelinkStates.garmin_password)
+    await message.answer("Send your Garmin password (the message will be deleted)")
+
+
+@registration_router.message(StateFilter(GarminRelinkStates.garmin_password))
+async def relink_garmin_password(message: types.Message, state: FSMContext):
+    password = message.text
+    await delete_password_message(message)
+
+    tg_id = message.from_user.id
+    data = await state.get_data()
+
+    try:
+        await asyncio.to_thread(
+            login_with_credentials, tg_id, data["garmin_email"], password
+        )
+    except GarminMFARequiredError:
+        await message.answer(
+            "Garmin accounts with MFA/2FA aren't supported yet. "
+            "Disable MFA and send the password again, or /cancel"
+        )
+        return
+    except Exception as e:
+        logger.error(f"Garmin relink failed: {e}", exc_info=True)
+        await message.answer(
+            "Garmin login failed — send the password again, or /cancel"
+        )
+        return
+
+    repository = get_user_redis_repository()
+    profile = repository.get_profile(tg_id)
+    if not profile:
+        await state.clear()
+        await message.answer("Profile not found — run /register")
+        return
+    profile.garmin_email = data["garmin_email"]
+    repository.save_profile(profile)
+    garmin_client_cache.evict(tg_id)
+
+    await state.clear()
+    await message.answer(
+        "Garmin re-linked ✅\n"
+        "Autosync stays off after a session expiry — re-enable it via /autosync"
+    )
 
 
 @registration_router.message(StateFilter(RegistrationStates.coros_email))

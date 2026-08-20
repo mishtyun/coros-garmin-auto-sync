@@ -15,6 +15,7 @@ HELP_TEXT = (
     "\n"
     "All commands:\n"
     "/register — link or update your accounts\n"
+    "/relink_garmin — re-link Garmin only\n"
     "/sport — open the sync menu\n"
     "/plan_workout — plan a workout from text (AI)\n"
     "/autosync — automatic sync settings\n"

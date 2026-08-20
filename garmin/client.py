@@ -6,7 +6,7 @@ from garmin_connect.configuration import GarminConnectConfiguration
 from garmin_connect.exceptions import GarthHTTPError
 from garmin_connect.service import Garmin
 
-from garmin.oauth_repository import RedisOAuthRepository
+from garmin.oauth_repository import GarminOAuthNotFoundError, RedisOAuthRepository
 from users.repository import get_user_redis_repository
 
 __all__ = [
@@ -61,6 +61,15 @@ def login_with_credentials(tg_id: int, email: str, password: str) -> Garmin:
     return garmin
 
 
+def _is_auth_error(e: Exception) -> bool:
+    # garth's GarthHTTPError wraps a requests HTTPError under .error
+    response = getattr(getattr(e, "error", None), "response", None)
+    status = getattr(response, "status_code", None)
+    if status in (401, 403):
+        return True
+    return any(marker in str(e) for marker in ("401", "403", "Unauthorized"))
+
+
 def resume_client(tg_id: int, email: str) -> Garmin:
     """Build a Garmin client from OAuth tokens stored in Redis (no password)."""
     configuration = GarminConnectConfiguration(
@@ -73,11 +82,21 @@ def resume_client(tg_id: int, email: str) -> Garmin:
 
     try:
         garmin.login()
-    except Exception as e:
-        logger.info(f"Can't resume Garmin session for tg_id={tg_id}: {e}")
+    except GarminOAuthNotFoundError as e:
         raise GarminSessionExpiredError(
-            f"Garmin session expired for tg_id={tg_id}"
+            f"No stored Garmin session for tg_id={tg_id}"
         ) from e
+    except Exception as e:
+        # Only 401/403 (revoked/expired tokens) means the session is dead;
+        # anything else (network, 429, 5xx) is transient — let callers retry
+        # instead of disabling autosync and asking the user to re-register.
+        if _is_auth_error(e):
+            logger.info(f"Garmin session invalid for tg_id={tg_id}: {e}")
+            raise GarminSessionExpiredError(
+                f"Garmin session expired for tg_id={tg_id}"
+            ) from e
+        logger.info(f"Transient Garmin resume error for tg_id={tg_id}: {e}")
+        raise
 
     # persist OAuth2 token in case garth refreshed it during resume
     garmin.garth.dumps()

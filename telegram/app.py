@@ -15,6 +15,7 @@ __all__ = ["run_bot"]
 BOT_COMMANDS = [
     BotCommand(command="start", description="What this bot does"),
     BotCommand(command="register", description="Link Coros and Garmin accounts"),
+    BotCommand(command="relink_garmin", description="Re-link Garmin only"),
     BotCommand(command="sport", description="Open the sync menu"),
     BotCommand(command="plan_workout", description="Plan a workout from text (AI)"),
     BotCommand(command="autosync", description="Automatic sync settings"),

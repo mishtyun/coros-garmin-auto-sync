@@ -181,7 +181,7 @@ async def run_autosync_cycle(bot: Bot) -> None:
             await _disable_autosync(
                 bot,
                 profile,
-                "Garmin session expired — relink via /register, then /autosync",
+                "Garmin session expired — relink via /relink_garmin, then /autosync",
             )
         except Exception as e:
             # transient errors (network etc.): keep autosync enabled, retry next cycle
