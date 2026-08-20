@@ -134,12 +134,18 @@ document.querySelectorAll(".seg").forEach((btn) => {
   });
 });
 
-/* ---------- activities ---------- */
+/* ---------- activities (collapsed by default, lazy-loaded) ---------- */
+
+let activitiesLoaded = false;
 
 async function loadActivities() {
   const list = document.getElementById("activities-list");
+  activitiesLoaded = true;
   try {
     const data = await api("/api/activities?days=7");
+    document.getElementById("activities-title").textContent = data.activities.length
+      ? `Last 7 days · ${data.activities.length}`
+      : "Last 7 days";
     if (!data.activities.length) {
       list.innerHTML = '<div class="empty">No workouts in the last 7 days 💤</div>';
       return;
@@ -162,6 +168,16 @@ async function loadActivities() {
   }
 }
 
+const activitiesToggle = document.getElementById("activities-toggle");
+activitiesToggle.addEventListener("click", () => {
+  const list = document.getElementById("activities-list");
+  const expanded = activitiesToggle.getAttribute("aria-expanded") === "true";
+  activitiesToggle.setAttribute("aria-expanded", String(!expanded));
+  list.classList.toggle("collapsed", expanded);
+  tg.HapticFeedback?.selectionChanged?.();
+  if (!expanded && !activitiesLoaded) loadActivities();
+});
+
 /* ---------- sync actions ---------- */
 
 function renderSyncResult(lines) {
@@ -177,7 +193,7 @@ async function runSync(btn, path, formatResult) {
   try {
     const data = await api(path, { method: "POST" });
     renderSyncResult(formatResult(data));
-    loadActivities();
+    if (activitiesLoaded) loadActivities();
     tg.HapticFeedback?.notificationOccurred?.("success");
   } catch (e) {
     toast(e.message);
@@ -277,7 +293,7 @@ async function boot() {
     return;
   }
   loadStats("week");
-  loadActivities();
+  // activities are lazy-loaded on first expand of the collapsed card
 }
 
 boot();

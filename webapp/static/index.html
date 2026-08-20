@@ -33,9 +33,12 @@
       <div class="skeleton-block" style="height:120px"></div>
     </section>
 
-    <section class="card">
-      <div class="card-title">Last 7 days</div>
-      <div id="activities-list">
+    <section class="card collapsible-card">
+      <button class="collapse-toggle" id="activities-toggle" aria-expanded="false">
+        <span class="card-title" id="activities-title">Last 7 days</span>
+        <span class="chevron">▾</span>
+      </button>
+      <div id="activities-list" class="collapsed">
         <div class="skeleton-block" style="height:96px"></div>
       </div>
     </section>
